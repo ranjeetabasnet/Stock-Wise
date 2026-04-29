@@ -7,6 +7,10 @@
       {
         "symbol": "AAPL",
         "description": "Apple Inc."
+      },
+      {
+        "symbol": "SNDK",
+        "description": "Sandisk Corporation"
       }
     ]
   }

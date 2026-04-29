@@ -4,3 +4,5 @@ requests
 google-generativeai
 yfinance
 flask-login
+newspaper3k
+beautifulsoup4

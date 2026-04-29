@@ -114,6 +114,18 @@ body {
 .btn.primary { background:#22c55e; color:#062020; font-weight:700; border:none; }
 .features { margin-top:1rem; list-style:disc; padding-left:1.25rem; color:#334155; }
 
+/* Stock detail / chart styles */
+.chart-controls { margin: 1rem 0; display:flex; gap:0.5rem; }
+.range-btn { padding:0.45rem 0.6rem; border-radius:8px; border:1px solid #e2e8f0; background:#fff; cursor:pointer; }
+.range-btn.active { background:#2563eb; color:#fff; border-color:#1e40af; }
+.stock-meta { display:flex; flex-direction:column; gap:0.25rem; }
+.stock-stats { font-size:0.95rem; }
+.loading { font-style:italic; color:#64748b; }
+
+/* simple spinner */
+.spinner { width:18px; height:18px; border-radius:50%; border:3px solid rgba(0,0,0,0.08); border-top-color:#2563eb; animation:spin 1s linear infinite; display:inline-block; vertical-align:middle; margin-right:0.5rem; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
 .footer {
     background: #1a2e4a;
     color: #fff;
