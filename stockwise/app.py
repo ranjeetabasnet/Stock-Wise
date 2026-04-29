@@ -4,13 +4,15 @@ import os
 import csv
 import json
 import requests
+import yfinance as yf
 from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
 
 load_dotenv()
-FINNHUB_API_KEY = os.environ.get('FINNHUB_API_KEY')
+# yfinance does not require API keys
+FINNHUB_API_KEY = None
 
 
 app = Flask(__name__)
@@ -89,38 +91,20 @@ def add_watchlist():
     ticker = request.form.get('watchlist_ticker', '').strip().upper()
     if not ticker:
         return jsonify({'success': False, 'error': 'Please enter a ticker symbol.'}), 400
-    # Validate ticker with Finnhub
-    url = f'https://finnhub.io/api/v1/search?q={ticker}&token={FINNHUB_API_KEY}'
+    # Validate ticker using yfinance
     try:
-        resp = requests.get(url, timeout=6)
-        data = resp.json()
-        results = data.get('result', [])
-        if not results:
+        info = yf.Ticker(ticker).info
+        # yfinance returns a dict with 'shortName' or 'longName' when valid
+        if not info or ('shortName' not in info and 'longName' not in info and 'regularMarketPrice' not in info):
             return jsonify({'success': False, 'error': f"We couldn't find '{ticker}' — double-check the symbol and try again."}), 404
-        # Accept if any result symbol matches input (case-insensitive)
-        match = None
-        for item in results:
-            if item['symbol'].upper() == ticker:
-                match = item
-                break
-        # If not exact, accept if input is substring of any symbol or description
-        if not match:
-            for item in results:
-                if ticker in item['symbol'].upper() or ticker in item.get('description', '').upper():
-                    match = item
-                    break
-        # If still not found, accept first result
-        if not match:
-            match = results[0]
-        # Store in session
+        description = info.get('shortName') or info.get('longName') or ''
         watchlist = session.get('watchlist', [])
-        # Prevent duplicates
-        if any(w['symbol'].upper() == match['symbol'].upper() for w in watchlist):
+        if any(w['symbol'].upper() == ticker for w in watchlist):
             return jsonify({'success': False, 'error': 'This ticker is already in your watchlist.'}), 400
-        watchlist.append({'symbol': match['symbol'].upper(), 'description': match.get('description', '')})
+        watchlist.append({'symbol': ticker, 'description': description})
         session['watchlist'] = watchlist
-        return jsonify({'success': True, 'symbol': match['symbol'].upper(), 'description': match.get('description', '')})
-    except Exception as e:
+        return jsonify({'success': True, 'symbol': ticker, 'description': description})
+    except Exception:
         return jsonify({'success': False, 'error': 'Could not validate ticker. Please try again.'}), 500
 
 # Remove from watchlist
@@ -146,6 +130,28 @@ def stock_detail(ticker):
 @app.route('/learn')
 def learn():
     return render_template('learn.html')
+
+
+# AJAX endpoint for ticker search suggestions using Yahoo's public search
+@app.route('/search_tickers')
+def search_tickers():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify([])
+    url = f'https://query2.finance.yahoo.com/v1/finance/search?q={query}'
+    try:
+        resp = requests.get(url, timeout=6)
+        data = resp.json()
+        quotes = data.get('quotes', [])
+        suggestions = []
+        for item in quotes[:10]:
+            sym = item.get('symbol')
+            name = item.get('shortname') or item.get('longname') or ''
+            if sym:
+                suggestions.append({'symbol': sym, 'description': name})
+        return jsonify(suggestions)
+    except Exception:
+        return jsonify([])
 
 if __name__ == '__main__':
     app.run(debug=True)
