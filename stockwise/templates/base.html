@@ -9,16 +9,36 @@
 <body>
     <nav class="navbar">
         <div class="container nav-content">
-            <span class="app-name">StockWise 📈</span>
-            <div class="nav-links">
-                <a href="/">Dashboard</a>
-                <a href="/learn">Learn</a>
+            <div class="nav-left">
+                <span class="app-name">StockWise 📈</span>
+                <div class="nav-links">
+                    <a href="/">Dashboard</a>
+                    <a href="/learn">Learn</a>
+                </div>
+            </div>
+            <div class="nav-right">
+                {% if current_user.is_authenticated %}
+                    <span class="nav-user">Hello, <strong>{{ current_user.username }}</strong></span>
+                    <a href="/logout" class="nav-action">Log out</a>
+                {% else %}
+                    <a href="/login" class="nav-action">Log in</a>
+                    <a href="/signup" class="nav-action primary">Sign up</a>
+                {% endif %}
             </div>
         </div>
     </nav>
-    <main class="container">
-        {% block content %}{% endblock %}
-    </main>
+        <main class="container">
+                {% with messages = get_flashed_messages() %}
+                    {% if messages %}
+                        <div class="flash-messages">
+                            {% for msg in messages %}
+                                <div class="flash">{{ msg }}</div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                {% endwith %}
+                {% block content %}{% endblock %}
+        </main>
     <footer class="footer">
         Built for beginner investors
     </footer>

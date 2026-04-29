@@ -3,3 +3,4 @@ python-dotenv
 requests
 google-generativeai
 yfinance
+flask-login

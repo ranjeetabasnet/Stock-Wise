@@ -1,0 +1,13 @@
+{
+  "1": {
+    "username": "ranch",
+    "password_hash": "scrypt:32768:8:1$g30JDDrJcgP1t5xy$f4b1b42c81e7147bc762df24afdf3fc91a2a63573a4b62136b7898e0a9d87e1cbbe37085ed44e3d286de3b12c278d5b95ea77763bf0d27ab6ec7c2fb691a30ea",
+    "portfolio": [],
+    "watchlist": [
+      {
+        "symbol": "AAPL",
+        "description": "Apple Inc."
+      }
+    ]
+  }
+}

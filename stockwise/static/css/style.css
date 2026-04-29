@@ -50,6 +50,34 @@ body {
     align-items: center;
 }
 
+.nav-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+.nav-right {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.nav-user {
+    color: #fff;
+    font-weight: 600;
+    margin-right: 0.5rem;
+}
+.nav-action {
+    color: #fff;
+    text-decoration: none;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+}
+.nav-action.primary {
+    background: #22c55e;
+    color: #062020;
+    font-weight: 700;
+}
+.nav-action:hover { opacity: 0.9; }
+
 .app-name {
     font-size: 1.5rem;
     font-weight: bold;
@@ -74,6 +102,17 @@ body {
     padding: 2rem;
     margin-bottom: 2rem;
 }
+
+/* Hero styles */
+.hero { padding: 3rem 0; }
+.hero-inner { display:flex; gap:2rem; align-items: center; }
+.hero-left { flex:1; }
+.hero-right { width:320px; }
+.lead { color: #334155; font-size:1.05rem; margin-top:0.5rem; }
+.hero-ctas { margin-top:1rem; display:flex; gap:0.75rem; }
+.btn { display:inline-block; padding:0.6rem 1rem; border-radius:8px; background:#fff; color:#1a2e4a; text-decoration:none; border:1px solid #e2e8f0; }
+.btn.primary { background:#22c55e; color:#062020; font-weight:700; border:none; }
+.features { margin-top:1rem; list-style:disc; padding-left:1.25rem; color:#334155; }
 
 .footer {
     background: #1a2e4a;
@@ -159,6 +198,9 @@ body {
     text-align: center;
     font-size: 1.1rem;
 }
+
+.flash-messages { margin: 1rem 0; }
+.flash { background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.6rem 1rem; border-radius: 6px; color: #1e3a8a; margin-bottom: 0.5rem; }
 
 .watchlist-form {
     display: flex;

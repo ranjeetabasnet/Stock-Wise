@@ -1,5 +1,33 @@
 {% extends 'base.html' %}
 {% block content %}
+
+{% if not current_user.is_authenticated %}
+<section class="hero">
+  <div class="container hero-inner">
+    <div class="hero-left">
+      <h1>Stocks, made simple.</h1>
+      <p class="lead">Track your holdings, build a watchlist, and learn the basics.</p>
+      <div class="hero-ctas">
+        <a class="btn primary" href="/signup">Sign up</a>
+        <a class="btn" href="/learn">Learn</a>
+      </div>
+      <ul class="features">
+        <li>Upload past trades</li>
+        <li>Save a watchlist</li>
+      </ul>
+    </div>
+    <div class="hero-right">
+      <div class="card" style="padding:1.5rem;">
+        <h3>Ready to get started?</h3>
+        <p>Create an account to save your portfolio and watchlist across visits.</p>
+        <a href="/signup" class="btn primary">Sign up</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% else %}
+
 <div class="card">
     <h1>Welcome to StockWise!</h1>
     <form method="POST" enctype="multipart/form-data" class="portfolio-upload-form">
@@ -48,12 +76,11 @@
     {% endif %}
 </div>
 
-
 <div class="card">
     <h2>My Watchlist</h2>
     <form id="watchlist-form" class="watchlist-form" autocomplete="off">
         <div style="position:relative;width:100%;">
-            <input type="text" name="watchlist_ticker" id="watchlist_ticker" placeholder="Enter stock or ETF ticker (e.g. AAPL, VOO)" required autocomplete="off">
+            <input type="text" name="watchlist_ticker" id="watchlist_ticker" placeholder="Ticker (e.g. AAPL)" required autocomplete="off">
             <ul id="ticker-suggestions" class="ticker-suggestions" style="display:none;"></ul>
         </div>
         <button type="submit">Add</button>
@@ -67,18 +94,18 @@
                 <div class="watchlist-symbol">{{ item.symbol }}</div>
                 <div class="watchlist-desc">{{ item.description }}</div>
                 <div class="watchlist-actions">
-                    <a href="/stock/{{ item.symbol }}" class="details-btn">View Details</a>
+                    <a href="/stock/{{ item.symbol }}" class="details-btn">View</a>
                     <button class="remove-btn" data-symbol="{{ item.symbol }}" title="Remove">×</button>
                 </div>
             </div>
             {% endfor %}
         </div>
     {% else %}
-        <div class="placeholder-card">
-            Add a stock or ETF above to start tracking it!
-        </div>
+        <div class="placeholder-card">Add a stock to start tracking.</div>
     {% endif %}
 </div>
+
+{% endif %}
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

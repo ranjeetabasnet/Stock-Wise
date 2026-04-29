@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+  <h1>Create account</h1>
+  <form method="post" action="/signup">
+    <label>Choose a username</label><br>
+    <input name="username" required>
+    <br>
+    <label>Choose a password</label><br>
+    <input name="password" type="password" required>
+    <br><br>
+    <button type="submit">Sign up</button>
+  </form>
+  <p>Already have an account? <a href="/login">Log in</a></p>
+</div>
+{% endblock %}
