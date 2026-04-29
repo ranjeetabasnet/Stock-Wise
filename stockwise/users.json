@@ -13,5 +13,38 @@
         "description": "Sandisk Corporation"
       }
     ]
+  },
+  "2": {
+    "username": "Anjum",
+    "password_hash": "scrypt:32768:8:1$L6UKEI6G6drBZpqM$0483478265370b0677c39730fdde9e87e6975efc0c60c6c620fa4e3979918fc32f3df05e15dde155816ba4fa8a520e4355d5a153cb310c6aee07927915c21dba",
+    "portfolio": [
+      {
+        "Symbol": "AAPL",
+        "Shares": "15",
+        "Buy Price": "150.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "VOO",
+        "Shares": "5",
+        "Buy Price": "400.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "NVDA",
+        "Shares": "10",
+        "Buy Price": "400.00",
+        "Sell Price": "550.00",
+        "Sell Date": "2024-03-01"
+      }
+    ],
+    "watchlist": [
+      {
+        "symbol": "MSFT",
+        "description": "Microsoft Corporation"
+      }
+    ]
   }
 }

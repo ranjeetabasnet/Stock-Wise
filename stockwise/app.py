@@ -22,20 +22,44 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+import google.generativeai as genai
 
 
 load_dotenv()
 # yfinance does not require API keys
 FINNHUB_API_KEY = None
+# Initialize Gemini API
+GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev')
 
+# Configure upload folder
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 # Flask-Login setup
 login_manager = LoginManager()
 login_manager.login_view = 'login'
 login_manager.init_app(app)
+
+# User class for Flask-Login
+class User(UserMixin):
+    def __init__(self, user_id, username, password_hash):
+        self.id = user_id
+        self.username = username
+        self.password_hash = password_hash
+
+@login_manager.user_loader
+def load_user(user_id):
+    users = load_users()
+    if user_id in users:
+        u = users[user_id]
+        return User(user_id, u.get('username'), u.get('password_hash'))
+    return None
 
 # Users file path
 USERS_FILE = os.path.join(os.path.dirname(__file__), 'users.json')
@@ -81,6 +105,84 @@ def parse_portfolio(file_path, ext):
                     'Sell Date': str(row.get('Sell Date', '')).strip(),
                 })
     return data
+
+def allowed_file(filename):
+    """Check if file extension is allowed."""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv', 'json'}
+
+def analyze_sold_stocks(portfolio):
+    """
+    Analyze sold stocks from portfolio and fetch historical data for retrospectives.
+    Returns list of dicts with retrospective info ready for Gemini.
+    """
+    sold = []
+    if not portfolio:
+        return sold
+    
+    for item in portfolio:
+        sell_price_str = item.get('Sell Price', '').strip()
+        sell_date_str = item.get('Sell Date', '').strip()
+        
+        # Only process if both sell price and sell date are provided
+        if not sell_price_str or not sell_date_str:
+            continue
+        
+        try:
+            sell_price = float(sell_price_str)
+            buy_price = float(item.get('Buy Price', '0').strip() or '0')
+            shares = float(item.get('Shares', '1').strip() or '1')
+            ticker = item.get('Symbol', '').strip().upper()
+            
+            if not ticker or buy_price <= 0:
+                continue
+            
+            # Fetch current price
+            try:
+                current_tk = yf.Ticker(ticker)
+                current_info = current_tk.info or {}
+                current_price = current_info.get('regularMarketPrice') or current_info.get('currentPrice')
+                
+                # If not available, try fetching last close from history
+                if not current_price:
+                    hist = current_tk.history(period='5d')
+                    if hist is not None and not hist.empty:
+                        current_price = float(hist['Close'].iloc[-1])
+            except Exception as e:
+                print(f'Error fetching current price for {ticker}:', e)
+                current_price = sell_price  # fallback
+            
+            if not current_price:
+                continue
+            
+            # Fetch company name
+            try:
+                company_name = current_tk.info.get('shortName') or ticker
+            except Exception:
+                company_name = ticker
+            
+            # Calculate gains
+            actual_gain = (sell_price - buy_price) * shares
+            hypothetical_value = current_price * shares
+            hypothetical_gain = (current_price - buy_price) * shares
+            
+            sold.append({
+                'ticker': ticker,
+                'company_name': company_name,
+                'buy_price': buy_price,
+                'sell_price': sell_price,
+                'current_price': current_price,
+                'shares': shares,
+                'sell_date': sell_date_str,
+                'actual_value': sell_price * shares,
+                'hypothetical_value': hypothetical_value,
+                'actual_gain': actual_gain,
+                'hypothetical_gain': hypothetical_gain
+            })
+        except Exception as e:
+            print(f'Error analyzing sold stock {item.get("Symbol")}:', e)
+            continue
+    
+    return sold
 
 
 
@@ -472,97 +574,86 @@ def _cache_set(key, summary):
         _summary_cache[key] = (summary, time.time())
 
 def _summarize_via_gemini(text, length):
-    # identical logic to previous Gemini REST attempt, but isolated for reuse
-    key = os.environ.get('GEMINI_API_KEY') or os.environ.get('GOOGLE_API_KEY') or os.environ.get('GEMINI_API')
-    if not key:
+    """Summarize text using Gemini API with beginner-friendly language."""
+    if not GEMINI_API_KEY:
         return None
-    prompt = f"Summarize the following news for a beginner in plain English (concise):\n\n{text}"
-    max_tokens = max(64, min(1024, int(length / 4) + 80))
-    endpoints = [
-        f'https://generativelanguage.googleapis.com/v1/models/text-bison-001:generateText?key={key}',
-        f'https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generateText?key={key}'
-    ]
-    headers = {'Content-Type': 'application/json'}
-    for url in endpoints:
-        try:
-            body = {
-                'prompt': { 'text': prompt },
-                'temperature': 0.2,
-                'maxOutputTokens': max_tokens
-            }
-            resp = requests.post(url, json=body, headers=headers, timeout=10)
-            if resp.status_code != 200:
-                body2 = {'prompt': prompt, 'temperature': 0.2, 'max_output_tokens': max_tokens}
-                resp = requests.post(url, json=body2, headers=headers, timeout=10)
-            if resp.status_code == 200:
-                j = resp.json()
-                out = None
-                if isinstance(j.get('candidates'), list) and j['candidates']:
-                    c0 = j['candidates'][0]
-                    out = c0.get('output') or c0.get('content') or c0.get('text')
-                if not out and isinstance(j.get('output'), dict):
-                    out = j['output'].get('text') or j['output'].get('content')
-                if not out:
-                    out = j.get('summary') or j.get('result') or j.get('text')
-                if out:
-                    return out
-        except Exception as e:
-            print('Gemini REST call failed for', url, e)
-            continue
+    try:
+        prompt = f"You are a friendly financial coach explaining news to complete beginners. Summarize this news article in plain English without jargon:\n\n{text}\n\nKeep it 2-3 sentences and encouraging."
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.2,
+                max_output_tokens=min(512, int(length / 2) + 100)
+            )
+        )
+        if response and response.text:
+            return response.text.strip()
+    except Exception as e:
+        print('Gemini summarize error:', e)
     return None
 
 
 @app.route('/api/news/<ticker>')
 def api_news(ticker):
-    # Fetch news via Google News RSS for more reliable recent articles and extract content
+    """Fetch news with Gemini-powered summary and company name."""
     try:
-        # Try to get company name to improve the query
-        qname = ticker
+        # Get company name
+        company_name = ticker
         try:
             t = yf.Ticker(ticker)
-            qname = t.info.get('shortName') or ticker
+            company_name = t.info.get('shortName') or ticker
         except Exception:
-            qname = ticker
+            pass
 
-        query = f"{qname} {ticker} stock"
+        # Fetch Google News RSS
+        query = f"{company_name} {ticker} stock"
         rss_url = 'https://news.google.com/rss/search?q=' + urllib.parse.quote(query) + '&hl=en-US&gl=US&ceid=US:en'
         hdr = {'User-Agent': 'Mozilla/5.0'}
         resp = requests.get(rss_url, headers=hdr, timeout=8)
         items = []
+        
         if resp.status_code == 200:
             try:
                 import xml.etree.ElementTree as ET
                 root = ET.fromstring(resp.content)
-                # find items
                 for itm in root.findall('.//item')[:10]:
                     title = itm.findtext('title')
                     link = itm.findtext('link')
                     source = itm.findtext('source') or ''
-                    # sometimes Google News puts the source in the title like "Headline - Source"
                     if (not source) and title and ' - ' in title:
                         parts = title.rsplit(' - ', 1)
                         title = parts[0].strip()
                         source = parts[1].strip()
-                    # normalize source
                     source = source.strip() if source else ''
-                    # mark trusted publishers
+                    
+                    # Mark trusted publishers
                     trusted_publishers = [
                         'reuters', 'bloomberg', 'wsj', 'wall street journal', 'cnbc', 'financial times',
                         'ft', 'marketwatch', 'barron', 'barron\'s', 'nytimes', 'the new york times', 'seeking alpha'
                     ]
                     src_l = (source or '').lower()
                     trusted = any(p in src_l for p in trusted_publishers)
-                    # fetch article text for better summarization
+                    
+                    # Fetch article content for better summarization
                     content = ''
                     if link:
                         content = fetch_article_text(link, max_chars=3000)
-                    items.append({'title': title, 'link': link, 'publisher': source, 'content': content, 'trusted': trusted})
+                    
+                    items.append({
+                        'title': title,
+                        'link': link,
+                        'publisher': source,
+                        'content': content,
+                        'trusted': trusted
+                    })
             except Exception as e:
                 print('RSS parse error', e)
-        return jsonify(items)
+        
+        return jsonify({'ticker': ticker.upper(), 'company_name': company_name, 'articles': items})
     except Exception as e:
         print('news fetch error', e)
-        return jsonify([])
+        return jsonify({'ticker': ticker.upper(), 'company_name': '', 'articles': []})
 
 
 @app.route('/api/summarize', methods=['POST'])
@@ -604,9 +695,58 @@ def api_summarize():
         print('Fallback summarizer error:', e)
         return jsonify({'summary': text[:length]})
 
-@app.route('/learn')
-def learn():
-    return render_template('learn.html')
+@app.route('/api/retrospective/<ticker>', methods=['POST'])
+def api_retrospective(ticker):
+    """Generate a Gemini-powered retrospective for a sold stock."""
+    if not GEMINI_API_KEY:
+        return jsonify({'error': 'Gemini API not configured'}), 500
+    
+    data = request.json or {}
+    company_name = data.get('company_name', ticker)
+    buy_price = data.get('buy_price', 0)
+    sell_price = data.get('sell_price', 0)
+    current_price = data.get('current_price', 0)
+    shares = data.get('shares', 1)
+    
+    try:
+        actual_value = sell_price * shares
+        hypothetical_value = current_price * shares
+        actual_gain = (sell_price - buy_price) * shares
+        hypothetical_gain = (current_price - buy_price) * shares
+        
+        prompt = f"""A beginner investor bought {shares} shares of {ticker} ({company_name}) at ${buy_price} each. 
+They sold at ${sell_price} on their sell date, making ${actual_gain:.2f} ({((sell_price - buy_price) / buy_price * 100):.1f}%).
+
+Since they sold, the stock price has gone from ${sell_price} to ${current_price}, which means if they had held, 
+their position would now be worth ${hypothetical_value:.2f} instead of ${actual_value:.2f}.
+
+Write a short, encouraging 2-paragraph reflection that:
+1. Validates their decision to sell (they had a reason and that's okay)
+2. Explains what signs an app like StockWise could have shown them that might have helped them decide
+
+Be supportive and educational, not critical. Focus on learning, not regret."""
+        
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
+                temperature=0.3,
+                max_output_tokens=400
+            )
+        )
+        
+        retrospective = response.text.strip() if response and response.text else "Unable to generate reflection."
+        
+        return jsonify({
+            'ticker': ticker,
+            'retrospective': retrospective,
+            'actual_gain': actual_gain,
+            'hypothetical_gain': hypothetical_gain,
+            'did_better': actual_gain >= hypothetical_gain
+        })
+    except Exception as e:
+        print('Retrospective generation error:', e)
+        return jsonify({'error': 'Could not generate retrospective'}), 500
 
 
 # AJAX endpoint for ticker search suggestions using Yahoo's public search
