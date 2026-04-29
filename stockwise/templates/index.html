@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card">
+    <h1>Welcome to StockWise!</h1>
+    <form method="POST" enctype="multipart/form-data" class="portfolio-upload-form">
+        <label for="portfolio_file"><strong>Upload your portfolio (.csv or .json):</strong></label><br>
+        <input type="file" name="portfolio_file" id="portfolio_file" accept=".csv,.json">
+        <button type="submit">Upload</button>
+        <a href="{{ url_for('sample_portfolio') }}" class="sample-link">Download a sample file</a>
+    </form>
+    {% if upload_error %}
+        <div class="error-msg">{{ upload_error }}</div>
+    {% endif %}
+
+    {% if portfolio %}
+        <h2>Your Portfolio</h2>
+        <table class="portfolio-table">
+            <thead>
+                <tr>
+                    <th>Stock Symbol</th>
+                    <th>Shares Held</th>
+                    <th>Buy Price</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in portfolio %}
+                <tr>
+                    <td>{{ row['Symbol'] }}</td>
+                    <td>{{ row['Shares'] }}</td>
+                    <td>${{ row['Buy Price'] }}</td>
+                    <td>
+                        {% if row['Sell Price'] and row['Sell Date'] %}
+                            Sold
+                        {% else %}
+                            Holding
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div class="placeholder-card">
+            No portfolio uploaded yet. Upload a CSV or JSON file to get started!<br>
+            Not sure what format to use? <a href="{{ url_for('sample_portfolio') }}">Download a sample file</a>.
+        </div>
+    {% endif %}
+</div>
+
+
+<div class="card">
+    <h2>My Watchlist</h2>
+    <form id="watchlist-form" class="watchlist-form" autocomplete="off">
+        <div style="position:relative;width:100%;">
+            <input type="text" name="watchlist_ticker" id="watchlist_ticker" placeholder="Enter stock or ETF ticker (e.g. AAPL, VOO)" required autocomplete="off">
+            <ul id="ticker-suggestions" class="ticker-suggestions" style="display:none;"></ul>
+        </div>
+        <button type="submit">Add</button>
+    </form>
+    <div id="watchlist-error" class="error-msg" style="display:none;"></div>
+
+    {% if watchlist and watchlist|length > 0 %}
+        <div class="watchlist-grid">
+            {% for item in watchlist %}
+            <div class="watchlist-card" data-symbol="{{ item.symbol }}">
+                <div class="watchlist-symbol">{{ item.symbol }}</div>
+                <div class="watchlist-desc">{{ item.description }}</div>
+                <div class="watchlist-actions">
+                    <a href="/stock/{{ item.symbol }}" class="details-btn">View Details</a>
+                    <button class="remove-btn" data-symbol="{{ item.symbol }}" title="Remove">×</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="placeholder-card">
+            Add a stock or ETF above to start tracking it!
+        </div>
+    {% endif %}
+</div>
+
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% endblock %}
