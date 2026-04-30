@@ -27,8 +27,8 @@
     ],
     "watchlist": [
       {
-        "symbol": "AAPL",
-        "description": "Apple Inc."
+        "symbol": "SNDK",
+        "description": "Sandisk Corporation"
       }
     ]
   },
@@ -62,6 +62,72 @@
       {
         "symbol": "MSFT",
         "description": "Microsoft Corporation"
+      }
+    ]
+  },
+  "3": {
+    "username": "John",
+    "password_hash": "scrypt:32768:8:1$1K6JAZv6umuRsCQa$50bdaa89cb4c5a3da917bc5fb255e570996952f497be448fdb49808c593cdb23f803308a46e99f86244a1d6cd5e7d6f4819f489af9108fa3e34b7717e1ed6d49",
+    "portfolio": [
+      {
+        "Symbol": "AAPL",
+        "Shares": "15",
+        "Buy Price": "150.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "VOO",
+        "Shares": "5",
+        "Buy Price": "400.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "NVDA",
+        "Shares": "10",
+        "Buy Price": "400.00",
+        "Sell Price": "550.00",
+        "Sell Date": "2024-03-01"
+      }
+    ],
+    "watchlist": [
+      {
+        "symbol": "SNDK",
+        "description": "Sandisk Corporation"
+      }
+    ]
+  },
+  "4": {
+    "username": "Jane",
+    "password_hash": "scrypt:32768:8:1$PrhGFKtLLMPLa0rT$3d2680f77fd7af11df9c44594a27ee6a587bbfbeb2482fb095dac18d2b0796eac2b610b4d66d05e82c0fedb1d6360c80783ecb533edf152680590fb08ba2c750",
+    "portfolio": [
+      {
+        "Symbol": "AAPL",
+        "Shares": "15",
+        "Buy Price": "150.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "VOO",
+        "Shares": "5",
+        "Buy Price": "400.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "NVDA",
+        "Shares": "10",
+        "Buy Price": "400.00",
+        "Sell Price": "550.00",
+        "Sell Date": "2024-03-01"
+      }
+    ],
+    "watchlist": [
+      {
+        "symbol": "SNDK",
+        "description": "Sandisk Corporation"
       }
     ]
   }

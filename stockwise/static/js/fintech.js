@@ -32,7 +32,7 @@ const fintechTerms = {
     'cost basis':       'The original price you paid for an investment. Used to calculate your taxable gain or loss.',
     'p/e ratio':        'Price-to-Earnings — how much you pay for $1 of profit. P/E of 20 means investors pay $20 per $1 earned.',
     'p/e':              'Price-to-Earnings ratio. Lower can mean cheaper, but compare to similar companies first.',
-    'market cap':       'Total value of all a company's shares combined. Apple at $3T = 3 trillion dollars of total ownership.',
+    'market cap':       'Total value of all a company\'s shares combined. Apple at $3T = 3 trillion dollars of total ownership.',
     'valuation':        'An estimate of what a company is actually worth — not always the same as market cap.',
     'undervalued':      'When a stock price is lower than what analysts believe the company is actually worth.',
     'overvalued':       'When a stock price is higher than what the company appears to be worth — could mean a drop is coming.',

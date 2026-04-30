@@ -1,151 +1,281 @@
 {% extends 'base.html' %}
 {% block content %}
 
-<!-- ── Welcome ──────────────────────────────────────────── -->
 <div class="learn-welcome">
-  <h1 style="margin:0 0 0.5rem;font-size:2rem;font-weight:800;">Your Investing Classroom 🎓</h1>
-  <p style="margin:0;font-size:1.05rem;opacity:0.85;max-width:520px;line-height:1.6;">
-    Ask anything about stocks, investing, or terms you don't understand.
+  <h1 style="margin:0 0 0.45rem;font-size:1.9rem;font-weight:800;">Your Investing Classroom 🎓</h1>
+  <p style="margin:0;font-size:1rem;opacity:0.78;max-width:500px;line-height:1.65;">
+    Ask anything, test yourself with a quiz, or explore free resources.
     There are no dumb questions here.
   </p>
 </div>
 
-<!-- ── Chat interface ───────────────────────────────────── -->
-<div class="card" id="chat-card">
-  <h2 style="margin-top:0;margin-bottom:1rem;font-size:1.2rem;font-weight:700;color:#1a2e4a;">
-    💬 Ask a Question
-  </h2>
+<!-- ── Tab navigation ───────────────────────────────────── -->
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="ask">💬 Ask the AI</button>
+  <button class="tab-btn"        data-tab="quiz">🧠 Quiz Yourself</button>
+  <button class="tab-btn"        data-tab="resources">📚 Free Resources</button>
+</div>
 
-  <div id="chat-messages" class="chat-messages">
-    <!-- AI greeting -->
-    <div class="chat-row chat-row-ai">
-      <div class="chat-avatar">🤖</div>
-      <div class="chat-bubble chat-bubble-ai">
-        Hi! I'm your investing coach. Ask me anything — like
-        <em>"What is a stock?"</em> or
-        <em>"Why did my ETF drop today?"</em>
-        I'll explain it in plain English. 😊
+<!-- ══════════════════════════════════════════════════════
+     TAB 1 — ASK THE AI
+══════════════════════════════════════════════════════ -->
+<div id="tab-ask" class="tab-pane active">
+
+  <!-- Chat card -->
+  <div class="card" id="chat-card">
+    <h2 style="margin-top:0;margin-bottom:1rem;font-size:1.15rem;font-weight:700;color:var(--text);">
+      💬 Ask a Question
+    </h2>
+    <div id="chat-messages" class="chat-messages">
+      <div class="chat-row chat-row-ai">
+        <div class="chat-avatar">🤖</div>
+        <div class="chat-bubble chat-bubble-ai">
+          Hi! I'm your investing coach. Ask me anything — like
+          <em>"What is a stock?"</em> or <em>"Why did my ETF drop today?"</em>
+          I'll explain it in plain English. 😊
+        </div>
       </div>
     </div>
+    <form id="learn-form" class="learn-input-row" autocomplete="off">
+      <input type="text" id="learn-input" placeholder="Type your question…" autocomplete="off" required>
+      <button type="submit" id="learn-submit">Ask</button>
+    </form>
+    <p style="font-size:0.75rem;color:var(--text3);margin:0.5rem 0 0;text-align:right;">
+      Not financial advice — always do your own research.
+    </p>
   </div>
 
-  <form id="learn-form" class="learn-input-row" autocomplete="off">
-    <input
-      type="text"
-      id="learn-input"
-      placeholder="Type your question…"
-      autocomplete="off"
-      required
-    >
-    <button type="submit" id="learn-submit">Ask</button>
-  </form>
-  <p style="font-size:0.78rem;color:#cbd5e1;margin:0.5rem 0 0;text-align:right;">
-    Never invest based solely on AI answers — always do your own research.
-  </p>
-</div>
-
-<!-- ── Topic cards ──────────────────────────────────────── -->
-<div class="card">
-  <h2 style="margin-top:0;margin-bottom:0.35rem;font-size:1.2rem;font-weight:700;color:#1a2e4a;">
-    📖 Popular Topics
-  </h2>
-  <p style="color:#64748b;font-size:0.9rem;margin:0 0 1.25rem;">
-    Click any card to get an instant explanation.
-  </p>
-  <div class="topic-grid">
-    <div class="topic-card" data-question="What is a stock and how does owning one work?">
-      <span class="topic-icon">📌</span>
-      <span class="topic-text">What is a stock?</span>
-    </div>
-    <div class="topic-card" data-question="What's the difference between a stock and an ETF?">
-      <span class="topic-icon">⚖️</span>
-      <span class="topic-text">Stocks vs ETFs — what's the difference?</span>
-    </div>
-    <div class="topic-card" data-question="How do I know if a stock is doing well? What should I look for?">
-      <span class="topic-icon">🔍</span>
-      <span class="topic-text">How do I know if a stock is doing well?</span>
-    </div>
-    <div class="topic-card" data-question="What does it mean to diversify my portfolio and why is it important?">
-      <span class="topic-icon">🌐</span>
-      <span class="topic-text">What does "diversify" mean?</span>
-    </div>
-    <div class="topic-card" data-question="What is a dividend and how do investors make money from them?">
-      <span class="topic-icon">💰</span>
-      <span class="topic-text">What is a dividend?</span>
-    </div>
-    <div class="topic-card" data-question="How does the stock market actually work? Who sets the prices?">
-      <span class="topic-icon">🏛️</span>
-      <span class="topic-text">How does the stock market work?</span>
-    </div>
-    <div class="topic-card" data-question="Is now a good time to invest? How do I think about market timing?">
-      <span class="topic-icon">⏰</span>
-      <span class="topic-text">Is now a good time to invest?</span>
-    </div>
-    <div class="topic-card" data-question="What is compound interest and why do people say it's so powerful for investing?">
-      <span class="topic-icon">📈</span>
-      <span class="topic-text">What is compound interest?</span>
+  <!-- Topic cards -->
+  <div class="card">
+    <h2 style="margin-top:0;margin-bottom:0.35rem;font-size:1.1rem;font-weight:700;color:var(--text);">📖 Popular Topics</h2>
+    <p style="color:var(--text2);font-size:0.88rem;margin:0 0 1.1rem;">Click any card for an instant explanation.</p>
+    <div class="topic-grid">
+      <div class="topic-card" data-question="What is a stock and how does owning one actually work?"><span class="topic-icon">📌</span><span class="topic-text">What is a stock?</span></div>
+      <div class="topic-card" data-question="What's the difference between a stock and an ETF, and which is better for beginners?"><span class="topic-icon">⚖️</span><span class="topic-text">Stocks vs ETFs</span></div>
+      <div class="topic-card" data-question="How do I know if a stock is doing well? What numbers should I look at?"><span class="topic-icon">🔍</span><span class="topic-text">Is this stock doing well?</span></div>
+      <div class="topic-card" data-question="What does it mean to diversify my portfolio and why is it important for beginners?"><span class="topic-icon">🌐</span><span class="topic-text">What does "diversify" mean?</span></div>
+      <div class="topic-card" data-question="What is a dividend and how do investors make money from them?"><span class="topic-icon">💰</span><span class="topic-text">What is a dividend?</span></div>
+      <div class="topic-card" data-question="How does the stock market actually work? Who sets the prices?"><span class="topic-icon">🏛️</span><span class="topic-text">How does the market work?</span></div>
+      <div class="topic-card" data-question="Is now a good time to invest? How do I think about market timing as a beginner?"><span class="topic-icon">⏰</span><span class="topic-text">Is now a good time to invest?</span></div>
+      <div class="topic-card" data-question="What is compound interest and why do people say it's so powerful for long-term investing?"><span class="topic-icon">📈</span><span class="topic-text">What is compound interest?</span></div>
     </div>
   </div>
-</div>
 
-<!-- ── Personalized lessons (if portfolio uploaded) ──────── -->
-{% if portfolio and portfolio|length > 0 %}
-<div class="card">
-  <h2 style="margin-top:0;margin-bottom:0.35rem;font-size:1.2rem;font-weight:700;color:#1a2e4a;">
-    📚 Lessons Using Your Portfolio
-  </h2>
-  <p style="color:#64748b;font-size:0.9rem;margin:0 0 1.25rem;">
-    Personalized questions based on what you actually own — click to explore.
-  </p>
-  <div class="topic-grid">
-    {% set shown = namespace(n=0) %}
-    {% for row in portfolio %}
-      {% if shown.n < 4 %}
-        {% set sym = row['Symbol']|upper %}
-        {% if sym in ['VOO','SPY','QQQ','VTI','IVV','SCHB','VT','VXUS','ONEQ','SQQQ','TQQQ'] %}
-          {% set q = "What is an index fund like " ~ sym ~ " and why do so many beginners invest in it instead of individual stocks?" %}
-        {% elif sym in ['AAPL','MSFT','GOOGL','GOOG','META','AMZN','TSLA','NVDA','NFLX','AMD','INTC','CRM','ADBE','ORCL'] %}
-          {% set q = "Why do so many people invest in " ~ sym ~ "? What makes big tech companies popular in portfolios?" %}
-        {% elif sym in ['BRK.B','BRK.A','WMT','KO','JNJ','PG','XOM','CVX','JPM','BAC','GS'] %}
-          {% set q = "Why is " ~ sym ~ " considered a reliable, long-term stock investment for beginners?" %}
-        {% elif sym in ['GBTC','IBIT','FBTC','BITO'] %}
-          {% set q = "What is the connection between " ~ sym ~ " and Bitcoin, and how does crypto exposure work in a portfolio?" %}
-        {% else %}
-          {% set q = "What should a beginner investor know about owning shares of " ~ sym ~ "?" %}
-        {% endif %}
-        <div class="topic-card personalized-card" data-question="{{ q }}">
-          <span class="topic-icon">📌</span>
-          <div>
-            <div style="font-size:0.75rem;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">{{ sym }}</div>
-            <span class="topic-text">{{ q }}</span>
+  <!-- Personalised lessons -->
+  {% if portfolio and portfolio|length > 0 %}
+  <div class="card">
+    <h2 style="margin-top:0;margin-bottom:0.35rem;font-size:1.1rem;font-weight:700;color:var(--text);">📚 Lessons Using Your Portfolio</h2>
+    <p style="color:var(--text2);font-size:0.88rem;margin:0 0 1.1rem;">Personalised questions based on what you own.</p>
+    <div class="topic-grid">
+      {% set shown = namespace(n=0) %}
+      {% for row in portfolio %}
+        {% if shown.n < 4 %}
+          {% set sym = row['Symbol']|upper %}
+          {% if sym in ['VOO','SPY','QQQ','VTI','IVV','SCHB','VT','VXUS','ONEQ','SQQQ','TQQQ'] %}
+            {% set q = "What is an index fund like " ~ sym ~ " and why do so many beginners invest in it instead of individual stocks?" %}
+          {% elif sym in ['AAPL','MSFT','GOOGL','GOOG','META','AMZN','TSLA','NVDA','NFLX','AMD','INTC','CRM','ADBE','ORCL'] %}
+            {% set q = "Why do people invest in " ~ sym ~ "? What makes big tech stocks popular in portfolios?" %}
+          {% elif sym in ['BRK.B','BRK.A','WMT','KO','JNJ','PG','XOM','CVX','JPM','BAC','GS'] %}
+            {% set q = "Why is " ~ sym ~ " considered a solid, reliable stock for long-term investors?" %}
+          {% else %}
+            {% set q = "What should a beginner investor know about owning shares of " ~ sym ~ "?" %}
+          {% endif %}
+          <div class="topic-card personalized-card" data-question="{{ q }}">
+            <span class="topic-icon">📌</span>
+            <div>
+              <div style="font-size:0.72rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">{{ sym }}</div>
+              <span class="topic-text">{{ q }}</span>
+            </div>
           </div>
-        </div>
-        {% set shown.n = shown.n + 1 %}
-      {% endif %}
-    {% endfor %}
+          {% set shown.n = shown.n + 1 %}
+        {% endif %}
+      {% endfor %}
+    </div>
   </div>
-</div>
-{% endif %}
+  {% endif %}
 
-<!-- ─── JavaScript ──────────────────────────────────────── -->
+</div><!-- end tab-ask -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 2 — QUIZ
+══════════════════════════════════════════════════════ -->
+<div id="tab-quiz" class="tab-pane">
+  <div class="card">
+    <h2 style="margin-top:0;font-size:1.15rem;font-weight:700;color:var(--text);">🧠 Quiz Yourself</h2>
+    <p style="color:var(--text2);font-size:0.9rem;margin-bottom:1.25rem;">
+      Pick a topic. Our AI generates 5 questions just for you. Answer them all to get your score!
+    </p>
+
+    <!-- Topic selection screen -->
+    <div id="quiz-topic-screen">
+      <div class="quiz-topics-grid">
+        <button class="quiz-topic-btn" data-topic="stock market basics for beginners">
+          <span class="quiz-topic-icon">📌</span>Stock Basics
+        </button>
+        <button class="quiz-topic-btn" data-topic="ETFs and index funds for beginners">
+          <span class="quiz-topic-icon">📦</span>ETFs & Index Funds
+        </button>
+        <button class="quiz-topic-btn" data-topic="reading stock charts and market data">
+          <span class="quiz-topic-icon">📈</span>Reading the Market
+        </button>
+        <button class="quiz-topic-btn" data-topic="dividends and passive income investing">
+          <span class="quiz-topic-icon">💰</span>Dividends
+        </button>
+        <button class="quiz-topic-btn" data-topic="risk management and portfolio diversification">
+          <span class="quiz-topic-icon">🛡️</span>Risk &amp; Safety
+        </button>
+        <button class="quiz-topic-btn" data-topic="how the stock market works and what moves prices">
+          <span class="quiz-topic-icon">🏛️</span>How Markets Work
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div id="quiz-loading" style="display:none;text-align:center;padding:2rem;">
+      <span class="spinner" style="width:24px;height:24px;border-width:3px;"></span>
+      <div class="loading" style="margin-top:0.75rem;">Generating your quiz… this takes a few seconds 🤔</div>
+    </div>
+
+    <!-- Question screen -->
+    <div id="quiz-question-screen" style="display:none;">
+      <div class="quiz-progress" id="quiz-progress-label"></div>
+      <div class="quiz-question-text" id="quiz-question-text"></div>
+      <div class="quiz-options" id="quiz-options"></div>
+      <div id="quiz-explanation" class="quiz-explanation" style="display:none;"></div>
+      <button class="quiz-next-btn" id="quiz-next-btn" style="display:none;"></button>
+    </div>
+
+    <!-- Score screen -->
+    <div id="quiz-score-screen" style="display:none;">
+      <div class="quiz-score-card">
+        <div class="quiz-score-number" id="quiz-score-num"></div>
+        <div class="quiz-score-label">out of 5 correct</div>
+        <div class="quiz-score-msg" id="quiz-score-msg"></div>
+        <button class="quiz-next-btn" onclick="resetQuiz()">Try another topic →</button>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="quiz-error" style="display:none;" class="error-msg"></div>
+  </div>
+</div><!-- end tab-quiz -->
+
+
+<!-- ══════════════════════════════════════════════════════
+     TAB 3 — RESOURCES
+══════════════════════════════════════════════════════ -->
+<div id="tab-resources" class="tab-pane">
+  <div class="card">
+    <h2 style="margin-top:0;font-size:1.15rem;font-weight:700;color:var(--text);">📚 Free Learning Resources</h2>
+    <p style="color:var(--text2);font-size:0.9rem;margin-bottom:1.75rem;">
+      The best free places to keep learning about investing — hand-picked for beginners.
+    </p>
+
+    <div class="resource-category">
+      <div class="resource-category-title">📖 Learn to invest</div>
+      <a class="resource-item" href="https://www.investopedia.com/investing-essentials-4689754" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">🌐</span>
+        <div><div class="resource-name">Investopedia — Investing Essentials <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">The go-to reference for every investing term. Clear definitions, examples, and beginner guides on everything from stocks to ETFs.</div></div>
+      </a>
+      <a class="resource-item" href="https://www.khanacademy.org/economics-finance-domain/core-finance" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">🎓</span>
+        <div><div class="resource-name">Khan Academy — Personal Finance <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Structured video courses covering stocks, bonds, mutual funds, and how markets work. Great for absolute beginners.</div></div>
+      </a>
+      <a class="resource-item" href="https://www.sec.gov/resources-for-investors/investor-education-resources" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">🏛️</span>
+        <div><div class="resource-name">SEC Investor Education <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Official guides from the U.S. Securities and Exchange Commission on how to invest safely and avoid fraud.</div></div>
+      </a>
+    </div>
+
+    <div class="resource-category">
+      <div class="resource-category-title">📊 Market data &amp; research</div>
+      <a class="resource-item" href="https://finance.yahoo.com" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">📈</span>
+        <div><div class="resource-name">Yahoo Finance <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Live stock prices, financials, analyst ratings, and news. One of the most comprehensive free data sources available.</div></div>
+      </a>
+      <a class="resource-item" href="https://finviz.com" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">🗺️</span>
+        <div><div class="resource-name">Finviz — Stock Screener <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Visual stock screener and market heatmap. Great for seeing which sectors are up or down at a glance.</div></div>
+      </a>
+      <a class="resource-item" href="https://www.macrotrends.net" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">📉</span>
+        <div><div class="resource-name">Macrotrends — Long-term Charts <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Historical charts going back decades for any stock or index. Perfect for understanding long-term trends.</div></div>
+      </a>
+    </div>
+
+    <div class="resource-category">
+      <div class="resource-category-title">🎙️ Podcasts &amp; video</div>
+      <a class="resource-item" href="https://www.youtube.com/@GrahamStephan" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">▶️</span>
+        <div><div class="resource-name">Graham Stephan — YouTube <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Plain-English explanations of investing, real estate, and personal finance. Popular with young first-time investors.</div></div>
+      </a>
+      <a class="resource-item" href="https://www.npr.org/podcasts/510289/planet-money" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">🎙️</span>
+        <div><div class="resource-name">NPR Planet Money Podcast <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Short, story-driven episodes that make economics and markets genuinely entertaining. Great for commutes.</div></div>
+      </a>
+      <a class="resource-item" href="https://www.youtube.com/@Investopedia" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">▶️</span>
+        <div><div class="resource-name">Investopedia — YouTube <span class="resource-free">FREE</span></div>
+          <div class="resource-desc">Short explainer videos on every investing concept. Perfect companion to their written guides.</div></div>
+      </a>
+    </div>
+
+    <div class="resource-category">
+      <div class="resource-category-title">📕 Books (widely available)</div>
+      <a class="resource-item" href="https://www.amazon.com/Little-Book-Common-Sense-Investing/dp/1119404509" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">📗</span>
+        <div><div class="resource-name">The Little Book of Common Sense Investing — Bogle</div>
+          <div class="resource-desc">The bible of index fund investing. Short, clear, and life-changing for beginners. Often available at local libraries.</div></div>
+      </a>
+      <a class="resource-item" href="https://www.amazon.com/Random-Walk-Down-Wall-Street/dp/0393358380" target="_blank" rel="noopener noreferrer">
+        <span class="resource-icon">📘</span>
+        <div><div class="resource-name">A Random Walk Down Wall Street — Malkiel</div>
+          <div class="resource-desc">Classic guide explaining why markets are hard to beat and why diversified index funds are the smart choice for most people.</div></div>
+      </a>
+    </div>
+
+    <p style="font-size:0.8rem;color:var(--text3);margin-top:1rem;border-top:1px solid var(--border);padding-top:1rem;">
+      ⚠️ Always read the full sources and consult a registered financial advisor before making investment decisions. StockWise is for education only.
+    </p>
+  </div>
+</div><!-- end tab-resources -->
+
+
+<!-- ─── Scripts ──────────────────────────────────────────── -->
 <script>
-// fintechTerms + highlightTerms(text, seen) available from fintech.js
+// fintechTerms + highlightTerms(text, seen) from fintech.js
 
+/* ── Tab switching ─────────────────────────────────────── */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+});
+
+/* ── Chat (Ask tab) ────────────────────────────────────── */
 const chatMessages = document.getElementById('chat-messages');
 const learnForm    = document.getElementById('learn-form');
 const learnInput   = document.getElementById('learn-input');
 const learnSubmit  = document.getElementById('learn-submit');
+const history      = [];
 
-// In-memory conversation history for multi-turn context
-const history = [];
-
-// ── Render AI text: markdown → HTML with first-occurrence term highlighting
 function renderLearnHtml(text) {
     let html = text
         .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
         .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
         .replace(/\*(.*?)\*/g,'<em>$1</em>');
-
     const seen = new Set();
     return html.split(/\n\n+/).filter(p => p.trim()).map(p => {
         p = p.trim();
@@ -155,105 +285,208 @@ function renderLearnHtml(text) {
             ).join('');
             return `<ul style="padding-left:1.2rem;margin:0.4rem 0 0.8rem;">${items}</ul>`;
         }
-        return `<p style="margin:0 0 0.65rem;line-height:1.75;">${highlightTerms(p, seen)}</p>`;
+        return `<p style="margin:0 0 0.6rem;line-height:1.7;">${highlightTerms(p, seen)}</p>`;
     }).join('');
 }
 
-// ── Append a message bubble to the chat
 function appendBubble(role, html) {
     const row = document.createElement('div');
     row.className = `chat-row chat-row-${role}`;
-
-    const avatar = document.createElement('div');
-    avatar.className = 'chat-avatar';
-    avatar.textContent = role === 'user' ? '🙋' : '🤖';
-
-    const bubble = document.createElement('div');
-    bubble.className = `chat-bubble chat-bubble-${role}`;
-    bubble.innerHTML = html;
-
-    if (role === 'user') {
-        row.appendChild(bubble);
-        row.appendChild(avatar);
-    } else {
-        row.appendChild(avatar);
-        row.appendChild(bubble);
-    }
+    const av = document.createElement('div');
+    av.className = 'chat-avatar';
+    av.textContent = role === 'user' ? '🙋' : '🤖';
+    const bub = document.createElement('div');
+    bub.className = `chat-bubble chat-bubble-${role}`;
+    bub.innerHTML = html;
+    if (role === 'user') { row.appendChild(bub); row.appendChild(av); }
+    else                 { row.appendChild(av);  row.appendChild(bub); }
     chatMessages.appendChild(row);
     chatMessages.scrollTop = chatMessages.scrollHeight;
-    return bubble;
+    return bub;
 }
 
-// ── Show a loading bubble and return a handle to replace it
-function appendLoadingBubble() {
+function appendLoading() {
     const row = document.createElement('div');
     row.className = 'chat-row chat-row-ai';
     row.id = 'loading-row';
-
-    const avatar = document.createElement('div');
-    avatar.className = 'chat-avatar';
-    avatar.textContent = '🤖';
-
-    const bubble = document.createElement('div');
-    bubble.className = 'chat-bubble chat-bubble-ai chat-loading';
-    bubble.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>&nbsp;Thinking… this usually takes a few seconds 🤔';
-
-    row.appendChild(avatar);
-    row.appendChild(bubble);
+    const av = document.createElement('div');
+    av.className = 'chat-avatar'; av.textContent = '🤖';
+    const bub = document.createElement('div');
+    bub.className = 'chat-bubble chat-bubble-ai chat-loading';
+    bub.innerHTML = '<span class="spinner" style="width:13px;height:13px;border-width:2px;"></span>&nbsp;Thinking… 🤔';
+    row.appendChild(av); row.appendChild(bub);
     chatMessages.appendChild(row);
     chatMessages.scrollTop = chatMessages.scrollHeight;
     return row;
 }
 
-// ── Submit a question
-async function submitQuestion(question) {
-    if (!question.trim()) return;
+async function submitQuestion(q) {
+    if (!q.trim()) return;
     learnInput.value = '';
     learnSubmit.disabled = true;
-
-    appendBubble('user', question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
-
-    const loadingRow = appendLoadingBubble();
-
+    appendBubble('user', q.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+    const loadRow = appendLoading();
     try {
         const res  = await fetch('/learn/ask', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question, history })
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ question: q, history })
         });
         const data = await res.json();
-        loadingRow.remove();
-
+        loadRow.remove();
         if (!res.ok || data.error) {
-            appendBubble('ai', `<span style="color:#dc2626;">${data.error || 'Something went wrong. Please try again.'}</span>`);
+            appendBubble('ai', `<span style="color:var(--red);">${data.error || 'Something went wrong.'}</span>`);
         } else {
             appendBubble('ai', renderLearnHtml(data.answer));
-            history.push({ q: question, a: data.answer });
+            history.push({ q, a: data.answer });
         }
-    } catch (e) {
-        loadingRow.remove();
-        appendBubble('ai', '<span style="color:#dc2626;">Our AI teacher is taking a short break. Try again in a moment!</span>');
+    } catch(e) {
+        loadRow.remove();
+        appendBubble('ai', '<span style="color:var(--red);">Our AI teacher is taking a short break. Try again in a moment!</span>');
     } finally {
         learnSubmit.disabled = false;
         learnInput.focus();
     }
 }
 
-// ── Form submit
-learnForm.addEventListener('submit', e => {
-    e.preventDefault();
-    submitQuestion(learnInput.value.trim());
-});
+learnForm.addEventListener('submit', e => { e.preventDefault(); submitQuestion(learnInput.value.trim()); });
 
-// ── Topic / personalized lesson card clicks
 document.querySelectorAll('.topic-card').forEach(card => {
     card.addEventListener('click', () => {
         const q = card.dataset.question;
-        if (q) {
-            document.getElementById('chat-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-            setTimeout(() => submitQuestion(q), 350);
-        }
+        if (!q) return;
+        // Switch to Ask tab first
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        document.querySelector('[data-tab="ask"]').classList.add('active');
+        document.getElementById('tab-ask').classList.add('active');
+        document.getElementById('chat-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setTimeout(() => submitQuestion(q), 400);
     });
 });
+
+
+/* ── Quiz (Quiz tab) ───────────────────────────────────── */
+let quizQuestions  = [];
+let quizIndex      = 0;
+let quizScore      = 0;
+let quizAnswered   = false;
+
+const topicScreen   = document.getElementById('quiz-topic-screen');
+const loadingScreen = document.getElementById('quiz-loading');
+const questionScreen= document.getElementById('quiz-question-screen');
+const scoreScreen   = document.getElementById('quiz-score-screen');
+const quizError     = document.getElementById('quiz-error');
+
+function showScreen(name) {
+    [topicScreen, loadingScreen, questionScreen, scoreScreen, quizError].forEach(el => el.style.display = 'none');
+    quizError.style.display = 'none';
+    document.getElementById('quiz-' + name + '-screen').style.display = (name === 'loading') ? 'block' : 'block';
+    if (name === 'loading') { loadingScreen.style.display = 'block'; return; }
+    if (name === 'topic')   { topicScreen.style.display = 'block'; return; }
+    if (name === 'question'){ questionScreen.style.display = 'block'; return; }
+    if (name === 'score')   { scoreScreen.style.display = 'block'; return; }
+}
+
+document.querySelectorAll('.quiz-topic-btn').forEach(btn => {
+    btn.addEventListener('click', () => startQuiz(btn.dataset.topic));
+});
+
+async function startQuiz(topic) {
+    quizQuestions = []; quizIndex = 0; quizScore = 0; quizAnswered = false;
+    topicScreen.style.display   = 'none';
+    quizError.style.display     = 'none';
+    scoreScreen.style.display   = 'none';
+    questionScreen.style.display= 'none';
+    loadingScreen.style.display = 'block';
+
+    try {
+        const res  = await fetch('/learn/quiz', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ topic })
+        });
+        const data = await res.json();
+        loadingScreen.style.display = 'none';
+        if (!res.ok || data.error || !data.questions) {
+            quizError.textContent = data.error || 'Could not generate quiz. Please try again.';
+            quizError.style.display = 'block';
+            topicScreen.style.display = 'block';
+            return;
+        }
+        quizQuestions = data.questions;
+        showQuestion();
+    } catch(e) {
+        loadingScreen.style.display = 'none';
+        quizError.textContent = 'Could not connect. Please try again.';
+        quizError.style.display = 'block';
+        topicScreen.style.display = 'block';
+    }
+}
+
+function showQuestion() {
+    if (quizIndex >= quizQuestions.length) { showScore(); return; }
+    quizAnswered = false;
+    const q = quizQuestions[quizIndex];
+    document.getElementById('quiz-progress-label').textContent =
+        `Question ${quizIndex + 1} of ${quizQuestions.length}`;
+    document.getElementById('quiz-question-text').textContent = q.question;
+
+    const optContainer = document.getElementById('quiz-options');
+    optContainer.innerHTML = '';
+    (q.options || []).forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => answerQuestion(i, q));
+        optContainer.appendChild(btn);
+    });
+
+    document.getElementById('quiz-explanation').style.display = 'none';
+    document.getElementById('quiz-explanation').textContent = '';
+    document.getElementById('quiz-next-btn').style.display = 'none';
+
+    questionScreen.style.display = 'block';
+}
+
+function answerQuestion(chosen, q) {
+    if (quizAnswered) return;
+    quizAnswered = true;
+    const correct = Number(q.correct);
+    const opts = document.querySelectorAll('.quiz-option');
+    opts.forEach((btn, i) => {
+        btn.disabled = true;
+        if (i === correct) btn.classList.add('correct');
+        else if (i === chosen && chosen !== correct) btn.classList.add('wrong');
+    });
+    if (chosen === correct) quizScore++;
+    if (q.explanation) {
+        const expEl = document.getElementById('quiz-explanation');
+        expEl.textContent = (chosen === correct ? '✅ Correct! ' : '❌ Not quite. ') + q.explanation;
+        expEl.style.display = 'block';
+    }
+    const nextBtn = document.getElementById('quiz-next-btn');
+    nextBtn.style.display = 'inline-block';
+    nextBtn.textContent = quizIndex + 1 < quizQuestions.length ? 'Next question →' : 'See my score →';
+    nextBtn.onclick = () => { quizIndex++; showQuestion(); };
+}
+
+function showScore() {
+    questionScreen.style.display = 'none';
+    document.getElementById('quiz-score-num').textContent = quizScore + '/5';
+    const pct = quizScore / quizQuestions.length;
+    const msgs = ['Keep going — every question you got wrong is something you just learned! 💪',
+                  'Nice work! You\'re building solid investing knowledge. 📚',
+                  'Great job! You clearly know your stuff. Try a harder topic! 🎉'];
+    document.getElementById('quiz-score-msg').textContent =
+        pct < 0.5 ? msgs[0] : pct < 0.8 ? msgs[1] : msgs[2];
+    scoreScreen.style.display = 'block';
+}
+
+function resetQuiz() {
+    scoreScreen.style.display   = 'none';
+    questionScreen.style.display= 'none';
+    topicScreen.style.display   = 'block';
+}
 </script>
 {% endblock %}

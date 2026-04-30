@@ -30,17 +30,25 @@ load_dotenv()
 FINNHUB_API_KEY = None
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
 _gemini_client = google_genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
-GEMINI_MODEL = 'gemini-flash-latest'  # 1.5-flash alias; works on free tier
+GEMINI_MODEL = 'gemini-2.5-flash'
 
 def _gemini_text(resp):
     """Safely extract text from a Gemini response (handles thinking-model empty .text)."""
+    try:
+        parts = resp.candidates[0].content.parts or []
+        # For thinking models, filter out thought parts and return only response text
+        response_parts = [p for p in parts if getattr(p, 'text', None) and not getattr(p, 'thought', False)]
+        if response_parts:
+            return ''.join(p.text for p in response_parts).strip()
+        # Fallback: join all text parts including thoughts
+        all_text = ''.join(p.text for p in parts if getattr(p, 'text', None)).strip()
+        if all_text:
+            return all_text
+    except Exception:
+        pass
     if resp and resp.text:
         return resp.text.strip()
-    try:
-        parts = resp.candidates[0].content.parts
-        return ''.join(p.text for p in parts if getattr(p, 'text', None)).strip()
-    except Exception:
-        return None
+    return None
 
 
 app = Flask(__name__)
@@ -245,6 +253,7 @@ def index():
 
 # Watchlist add/search/validate
 @app.route('/add_watchlist', methods=['POST'])
+@login_required
 def add_watchlist():
     ticker = request.form.get('watchlist_ticker', '').strip().upper()
     if not ticker:
@@ -304,6 +313,7 @@ def add_watchlist():
 
 # Remove from watchlist
 @app.route('/remove_watchlist', methods=['POST'])
+@login_required
 def remove_watchlist():
     ticker = request.form.get('symbol', '').strip().upper()
     if current_user.is_authenticated:
@@ -391,6 +401,7 @@ def logout():
     return redirect(url_for('index'))
 
 @app.route('/learn')
+@login_required
 def learn():
     if current_user.is_authenticated:
         users = load_users()
@@ -401,7 +412,44 @@ def learn():
     return render_template('learn.html', portfolio=portfolio)
 
 
+@app.route('/learn/quiz', methods=['POST'])
+@login_required
+def learn_quiz():
+    if not _gemini_client:
+        return jsonify({'error': 'AI not configured'}), 500
+    data  = request.json or {}
+    topic = data.get('topic', '').strip()
+    if not topic:
+        return jsonify({'error': 'No topic specified'}), 400
+    prompt = (
+        f'Create a 5-question multiple-choice quiz about "{topic}" for complete beginner investors.\n\n'
+        'Return ONLY a valid JSON array with exactly 5 objects. Each object must have:\n'
+        '  "question": string\n'
+        '  "options": array of exactly 4 strings\n'
+        '  "correct": integer 0-3 (index of the correct answer)\n'
+        '  "explanation": 1-2 sentence plain-English explanation\n\n'
+        'Keep it friendly and beginner-level. Return raw JSON only — no markdown fences, no other text.'
+    )
+    try:
+        resp = _gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(temperature=0.3, max_output_tokens=10000)
+        )
+        raw = _gemini_text(resp) or ''
+        raw = re.sub(r'^```(?:json)?\s*', '', raw.strip())
+        raw = re.sub(r'\s*```$', '', raw.strip())
+        questions = json.loads(raw)
+        if not isinstance(questions, list):
+            raise ValueError('Expected list')
+        return jsonify({'topic': topic, 'questions': questions[:5]})
+    except Exception as e:
+        print('Quiz error:', e)
+        return jsonify({'error': 'Could not generate quiz. Please try again.'}), 500
+
+
 @app.route('/learn/ask', methods=['POST'])
+@login_required
 def learn_ask():
     if not _gemini_client:
         return jsonify({'error': 'AI not configured'}), 500
@@ -429,7 +477,7 @@ def learn_ask():
             contents=context,
             config=genai_types.GenerateContentConfig(
                 temperature=0.4,
-                max_output_tokens=800,
+                max_output_tokens=10000,
                 system_instruction=(
                     "You are a patient, friendly investing teacher for complete beginners. "
                     "Your student may have never invested before. Always explain concepts using "
@@ -450,6 +498,7 @@ def learn_ask():
 
 
 @app.route('/stock/<ticker>')
+@login_required
 def stock_detail(ticker):
     return render_template('stock_detail.html', ticker=ticker)
 
@@ -685,7 +734,7 @@ def _summarize_via_gemini(text, length):
             contents=prompt,
             config=genai_types.GenerateContentConfig(
                 temperature=0.2,
-                max_output_tokens=1024
+                max_output_tokens=10000
             )
         )
         return _gemini_text(response)
@@ -818,7 +867,7 @@ def api_ai_summary(ticker):
             contents=prompt,
             config=genai_types.GenerateContentConfig(
                 temperature=0.3,
-                max_output_tokens=1500,
+                max_output_tokens=10000,
                 system_instruction=(
                     "You are a friendly financial coach who explains stock news to complete beginners. "
                     "Use simple, encouraging language. Never use jargon without explaining it. "
@@ -883,48 +932,122 @@ def api_summarize():
         print('Fallback summarizer error:', e)
         return jsonify({'summary': text[:length]})
 
+def _fetch_news_headlines(ticker, company_name, max_items=8):
+    """Fetch recent Google News headlines for a ticker. Returns list of title strings."""
+    try:
+        query = f"{company_name} {ticker} stock"
+        rss_url = 'https://news.google.com/rss/search?q=' + urllib.parse.quote(query) + '&hl=en-US&gl=US&ceid=US:en'
+        resp = requests.get(rss_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=7)
+        if resp.status_code != 200:
+            return []
+        import xml.etree.ElementTree as ET
+        root = ET.fromstring(resp.content)
+        headlines = []
+        for itm in root.findall('.//item')[:max_items]:
+            title = itm.findtext('title') or ''
+            if ' - ' in title:
+                title = title.rsplit(' - ', 1)[0].strip()
+            if title:
+                headlines.append(title)
+        return headlines
+    except Exception as e:
+        print('fetch_news_headlines error:', e)
+        return []
+
+
 @app.route('/api/retrospective/<ticker>', methods=['POST'])
 def api_retrospective(ticker):
-    """Generate a Gemini-powered retrospective for a sold stock."""
+    """Generate a detailed, news-aware Gemini retrospective for a sold stock."""
     if not _gemini_client:
         return jsonify({'error': 'Gemini API not configured'}), 500
 
     data = request.json or {}
     company_name = data.get('company_name', ticker)
-    buy_price = data.get('buy_price', 0)
-    sell_price = data.get('sell_price', 0)
-    current_price = data.get('current_price', 0)
-    shares = data.get('shares', 1)
+    buy_price    = float(data.get('buy_price', 0))
+    sell_price   = float(data.get('sell_price', 0))
+    current_price= float(data.get('current_price', 0))
+    shares       = float(data.get('shares', 1))
+    sell_date    = data.get('sell_date', 'the sell date')
 
     try:
-        actual_value = sell_price * shares
-        hypothetical_value = current_price * shares
-        actual_gain = (sell_price - buy_price) * shares
+        actual_value      = sell_price * shares
+        hypothetical_value= current_price * shares
+        actual_gain       = (sell_price - buy_price) * shares
         hypothetical_gain = (current_price - buy_price) * shares
+        sell_pct          = ((sell_price - buy_price) / buy_price * 100) if buy_price else 0
+        post_pct          = ((current_price - sell_price) / sell_price * 100) if sell_price else 0
+
+        # Fetch live stats for context
+        stats_ctx = ''
+        try:
+            tk = yf.Ticker(ticker)
+            info = tk.info or {}
+            pe      = info.get('trailingPE') or info.get('forwardPE')
+            high52  = info.get('fiftyTwoWeekHigh')
+            low52   = info.get('fiftyTwoWeekLow')
+            mktcap  = info.get('marketCap')
+            sector  = info.get('sector') or ''
+            parts = []
+            if pe:      parts.append(f"P/E ratio: {pe:.1f}")
+            if high52:  parts.append(f"52-week high: ${high52:.2f}")
+            if low52:   parts.append(f"52-week low: ${low52:.2f}")
+            if mktcap:
+                mc = f"${mktcap/1e12:.2f}T" if mktcap >= 1e12 else f"${mktcap/1e9:.2f}B"
+                parts.append(f"Market cap: {mc}")
+            if sector:  parts.append(f"Sector: {sector}")
+            if parts:
+                stats_ctx = '\n\nCurrent stock stats:\n' + '\n'.join(f'- {p}' for p in parts)
+        except Exception:
+            pass
+
+        # Fetch current news headlines
+        headlines = _fetch_news_headlines(ticker, company_name, max_items=8)
+        news_ctx = ''
+        if headlines:
+            news_ctx = '\n\nRecent news headlines about this stock:\n' + '\n'.join(f'- {h}' for h in headlines)
+
+        direction = 'risen' if current_price > sell_price else 'fallen'
+        outcome   = 'missed out on additional gains' if hypothetical_gain > actual_gain else 'avoided further losses'
 
         prompt = (
-            f"A beginner investor bought {shares} shares of {ticker} ({company_name}) at ${buy_price} each. "
-            f"They sold at ${sell_price} on their sell date, making ${actual_gain:.2f} "
-            f"({((sell_price - buy_price) / buy_price * 100):.1f}%).\n\n"
-            f"Since they sold, the stock price has gone from ${sell_price} to ${current_price}, "
-            f"which means if they had held, their position would now be worth ${hypothetical_value:.2f} "
-            f"instead of ${actual_value:.2f}.\n\n"
-            "Write a short, encouraging 2-paragraph reflection that:\n"
-            "1. Validates their decision to sell (they had a reason and that's okay)\n"
-            "2. Explains what signs an app like StockWise could have shown them that might have helped them decide\n\n"
-            "Be supportive and educational, not critical. Focus on learning, not regret."
+            f"A beginner investor bought {shares:.0f} shares of {ticker} ({company_name}) at ${buy_price:.2f} each. "
+            f"They sold on {sell_date} at ${sell_price:.2f}, "
+            f"{'making' if actual_gain >= 0 else 'losing'} ${abs(actual_gain):.2f} "
+            f"({sell_pct:+.1f}% from their buy price).\n\n"
+            f"Since they sold, the stock has {direction} from ${sell_price:.2f} to ${current_price:.2f} "
+            f"({post_pct:+.1f}%), meaning they {outcome}. "
+            f"If they had held, their position would now be worth ${hypothetical_value:.2f} instead of ${actual_value:.2f}."
+            f"{stats_ctx}"
+            f"{news_ctx}\n\n"
+            "Write a detailed, 3-paragraph educational retrospective for this beginner investor:\n\n"
+            "**Paragraph 1 — Validate their decision:** Warmly acknowledge why selling was a reasonable choice at the time. "
+            "Be specific about what a rational seller might have been thinking.\n\n"
+            "**Paragraph 2 — What the data was signalling:** Using the stats and news context above, identify 2-3 concrete, "
+            "specific signals that were present around the time of the sale — things like P/E ratio relative to sector norms, "
+            "price proximity to 52-week highs/lows, news sentiment, sector headwinds or tailwinds, earnings trends, or "
+            "macro factors (interest rates, inflation, etc.). Be specific and educational, not vague.\n\n"
+            "**Paragraph 3 — Actionable lesson:** Give 2-3 practical, specific things this investor can look at next time "
+            "before deciding to sell — for example: 'Check whether the P/E is above the sector average before selling a "
+            "growing company' or 'Look at the 52-week range to see if you are selling near the bottom'. "
+            "Make these lessons concrete and memorable.\n\n"
+            "Tone: warm, supportive mentor — never critical or harsh. Use plain English. "
+            "Acknowledge that even professional investors make timing mistakes."
         )
 
         response = _gemini_client.models.generate_content(
             model=GEMINI_MODEL,
             contents=prompt,
             config=genai_types.GenerateContentConfig(
-                temperature=0.3,
-                max_output_tokens=1024
+                temperature=0.35,
+                max_output_tokens=10000,
+                system_instruction=(
+                    "You are a supportive investing mentor helping a complete beginner learn from their trading history. "
+                    "Be specific, educational, and encouraging. Never make the user feel bad about their decisions."
+                )
             )
         )
         retrospective = _gemini_text(response) or "Unable to generate reflection."
-        
+
         return jsonify({
             'ticker': ticker,
             'retrospective': retrospective,
@@ -935,6 +1058,106 @@ def api_retrospective(ticker):
     except Exception as e:
         print('Retrospective generation error:', e)
         return jsonify({'error': 'Could not generate retrospective'}), 500
+
+
+@app.route('/api/recommendation/<ticker>')
+def api_recommendation(ticker):
+    """Generate a buy/sell/hold recommendation based on stats + news analysis."""
+    if not _gemini_client:
+        return jsonify({'error': 'Gemini API not configured'}), 500
+    try:
+        # Gather stats
+        tk = yf.Ticker(ticker)
+        info = tk.info or {}
+        company_name = info.get('shortName') or info.get('longName') or ticker
+        price    = info.get('regularMarketPrice') or info.get('currentPrice')
+        prev     = info.get('previousClose')
+        pe       = info.get('trailingPE') or info.get('forwardPE')
+        high52   = info.get('fiftyTwoWeekHigh')
+        low52    = info.get('fiftyTwoWeekLow')
+        mktcap   = info.get('marketCap')
+        sector   = info.get('sector') or 'Unknown'
+        beta     = info.get('beta')
+        div_yield= info.get('dividendYield')
+        analyst  = info.get('recommendationKey') or ''  # e.g. 'buy', 'hold'
+        target   = info.get('targetMeanPrice')
+
+        chg_pct = round((price - prev) / prev * 100, 2) if price and prev else None
+
+        # 52-week position
+        position_pct = None
+        if high52 and low52 and price:
+            position_pct = round((price - low52) / (high52 - low52) * 100, 1)
+
+        stats_lines = [f"- Current price: ${price:.2f}" if price else ""]
+        if chg_pct is not None: stats_lines.append(f"- Today's change: {chg_pct:+.2f}%")
+        if pe:           stats_lines.append(f"- P/E ratio: {pe:.1f}")
+        if high52:       stats_lines.append(f"- 52-week high: ${high52:.2f}")
+        if low52:        stats_lines.append(f"- 52-week low: ${low52:.2f}")
+        if position_pct is not None:
+            stats_lines.append(f"- Current price is at {position_pct:.0f}% of its 52-week range (0%=low, 100%=high)")
+        if mktcap:
+            mc = f"${mktcap/1e12:.2f}T" if mktcap >= 1e12 else f"${mktcap/1e9:.2f}B"
+            stats_lines.append(f"- Market cap: {mc}")
+        if sector:       stats_lines.append(f"- Sector: {sector}")
+        if beta:         stats_lines.append(f"- Beta (volatility vs market): {beta:.2f}")
+        if div_yield:    stats_lines.append(f"- Dividend yield: {div_yield*100:.2f}%")
+        if analyst:      stats_lines.append(f"- Analyst consensus: {analyst.replace('_',' ').title()}")
+        if target:       stats_lines.append(f"- Analyst price target: ${target:.2f}")
+        stats_text = '\n'.join(l for l in stats_lines if l)
+
+        # Fetch news
+        headlines = _fetch_news_headlines(ticker, company_name, max_items=8)
+        news_text = ''
+        if headlines:
+            news_text = '\n\nRecent news headlines:\n' + '\n'.join(f'- {h}' for h in headlines)
+
+        prompt = (
+            f"You are analysing {ticker} ({company_name}) for a complete beginner investor.\n\n"
+            f"Stock data:\n{stats_text}"
+            f"{news_text}\n\n"
+            "Based on ALL of the above — stock stats, market position, and recent news — provide:\n\n"
+            "1. **Verdict**: One word — BUY, SELL, or HOLD\n"
+            "2. **Confidence**: Low, Moderate, or High\n"
+            "3. **Key reasons** (3-4 bullet points, plain English, specific to this stock's actual data)\n"
+            "4. **Main risks** (2-3 bullet points — things that could go wrong)\n"
+            "5. **One sentence** reminding the user this is educational analysis, not personalised financial advice\n\n"
+            "Be honest and balanced. Do not be overly optimistic. Reference the actual numbers provided. "
+            "Use simple language a first-time investor will understand."
+        )
+
+        response = _gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
+                temperature=0.3,
+                max_output_tokens=10000,
+                system_instruction=(
+                    "You are an objective financial educator providing data-driven stock analysis for beginners. "
+                    "Be specific, balanced, and honest. Always reference the actual data provided."
+                )
+            )
+        )
+        analysis = _gemini_text(response)
+        if not analysis:
+            return jsonify({'error': 'Could not generate analysis'}), 500
+
+        # Extract top-level verdict for the badge
+        verdict = 'HOLD'
+        for word in ['BUY', 'SELL', 'HOLD']:
+            if word in analysis.upper()[:120]:
+                verdict = word
+                break
+
+        return jsonify({
+            'ticker': ticker.upper(),
+            'company_name': company_name,
+            'verdict': verdict,
+            'analysis': analysis
+        })
+    except Exception as e:
+        print('Recommendation error:', e)
+        return jsonify({'error': 'Could not generate recommendation'}), 500
 
 
 # AJAX endpoint for ticker search suggestions using Yahoo's public search
