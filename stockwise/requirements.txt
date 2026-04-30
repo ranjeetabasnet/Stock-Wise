@@ -1,8 +1,8 @@
 flask
+flask-login
 python-dotenv
 requests
-google-generativeai
+google-genai
 yfinance
-flask-login
-newspaper3k
 beautifulsoup4
+newspaper3k

@@ -1,7 +1,259 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card">
-    <h1>Learn Hub</h1>
-    <p>Ask questions and explore investing topics here.</p>
+
+<!-- ── Welcome ──────────────────────────────────────────── -->
+<div class="learn-welcome">
+  <h1 style="margin:0 0 0.5rem;font-size:2rem;font-weight:800;">Your Investing Classroom 🎓</h1>
+  <p style="margin:0;font-size:1.05rem;opacity:0.85;max-width:520px;line-height:1.6;">
+    Ask anything about stocks, investing, or terms you don't understand.
+    There are no dumb questions here.
+  </p>
 </div>
+
+<!-- ── Chat interface ───────────────────────────────────── -->
+<div class="card" id="chat-card">
+  <h2 style="margin-top:0;margin-bottom:1rem;font-size:1.2rem;font-weight:700;color:#1a2e4a;">
+    💬 Ask a Question
+  </h2>
+
+  <div id="chat-messages" class="chat-messages">
+    <!-- AI greeting -->
+    <div class="chat-row chat-row-ai">
+      <div class="chat-avatar">🤖</div>
+      <div class="chat-bubble chat-bubble-ai">
+        Hi! I'm your investing coach. Ask me anything — like
+        <em>"What is a stock?"</em> or
+        <em>"Why did my ETF drop today?"</em>
+        I'll explain it in plain English. 😊
+      </div>
+    </div>
+  </div>
+
+  <form id="learn-form" class="learn-input-row" autocomplete="off">
+    <input
+      type="text"
+      id="learn-input"
+      placeholder="Type your question…"
+      autocomplete="off"
+      required
+    >
+    <button type="submit" id="learn-submit">Ask</button>
+  </form>
+  <p style="font-size:0.78rem;color:#cbd5e1;margin:0.5rem 0 0;text-align:right;">
+    Never invest based solely on AI answers — always do your own research.
+  </p>
+</div>
+
+<!-- ── Topic cards ──────────────────────────────────────── -->
+<div class="card">
+  <h2 style="margin-top:0;margin-bottom:0.35rem;font-size:1.2rem;font-weight:700;color:#1a2e4a;">
+    📖 Popular Topics
+  </h2>
+  <p style="color:#64748b;font-size:0.9rem;margin:0 0 1.25rem;">
+    Click any card to get an instant explanation.
+  </p>
+  <div class="topic-grid">
+    <div class="topic-card" data-question="What is a stock and how does owning one work?">
+      <span class="topic-icon">📌</span>
+      <span class="topic-text">What is a stock?</span>
+    </div>
+    <div class="topic-card" data-question="What's the difference between a stock and an ETF?">
+      <span class="topic-icon">⚖️</span>
+      <span class="topic-text">Stocks vs ETFs — what's the difference?</span>
+    </div>
+    <div class="topic-card" data-question="How do I know if a stock is doing well? What should I look for?">
+      <span class="topic-icon">🔍</span>
+      <span class="topic-text">How do I know if a stock is doing well?</span>
+    </div>
+    <div class="topic-card" data-question="What does it mean to diversify my portfolio and why is it important?">
+      <span class="topic-icon">🌐</span>
+      <span class="topic-text">What does "diversify" mean?</span>
+    </div>
+    <div class="topic-card" data-question="What is a dividend and how do investors make money from them?">
+      <span class="topic-icon">💰</span>
+      <span class="topic-text">What is a dividend?</span>
+    </div>
+    <div class="topic-card" data-question="How does the stock market actually work? Who sets the prices?">
+      <span class="topic-icon">🏛️</span>
+      <span class="topic-text">How does the stock market work?</span>
+    </div>
+    <div class="topic-card" data-question="Is now a good time to invest? How do I think about market timing?">
+      <span class="topic-icon">⏰</span>
+      <span class="topic-text">Is now a good time to invest?</span>
+    </div>
+    <div class="topic-card" data-question="What is compound interest and why do people say it's so powerful for investing?">
+      <span class="topic-icon">📈</span>
+      <span class="topic-text">What is compound interest?</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Personalized lessons (if portfolio uploaded) ──────── -->
+{% if portfolio and portfolio|length > 0 %}
+<div class="card">
+  <h2 style="margin-top:0;margin-bottom:0.35rem;font-size:1.2rem;font-weight:700;color:#1a2e4a;">
+    📚 Lessons Using Your Portfolio
+  </h2>
+  <p style="color:#64748b;font-size:0.9rem;margin:0 0 1.25rem;">
+    Personalized questions based on what you actually own — click to explore.
+  </p>
+  <div class="topic-grid">
+    {% set shown = namespace(n=0) %}
+    {% for row in portfolio %}
+      {% if shown.n < 4 %}
+        {% set sym = row['Symbol']|upper %}
+        {% if sym in ['VOO','SPY','QQQ','VTI','IVV','SCHB','VT','VXUS','ONEQ','SQQQ','TQQQ'] %}
+          {% set q = "What is an index fund like " ~ sym ~ " and why do so many beginners invest in it instead of individual stocks?" %}
+        {% elif sym in ['AAPL','MSFT','GOOGL','GOOG','META','AMZN','TSLA','NVDA','NFLX','AMD','INTC','CRM','ADBE','ORCL'] %}
+          {% set q = "Why do so many people invest in " ~ sym ~ "? What makes big tech companies popular in portfolios?" %}
+        {% elif sym in ['BRK.B','BRK.A','WMT','KO','JNJ','PG','XOM','CVX','JPM','BAC','GS'] %}
+          {% set q = "Why is " ~ sym ~ " considered a reliable, long-term stock investment for beginners?" %}
+        {% elif sym in ['GBTC','IBIT','FBTC','BITO'] %}
+          {% set q = "What is the connection between " ~ sym ~ " and Bitcoin, and how does crypto exposure work in a portfolio?" %}
+        {% else %}
+          {% set q = "What should a beginner investor know about owning shares of " ~ sym ~ "?" %}
+        {% endif %}
+        <div class="topic-card personalized-card" data-question="{{ q }}">
+          <span class="topic-icon">📌</span>
+          <div>
+            <div style="font-size:0.75rem;font-weight:700;color:#2563eb;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.2rem;">{{ sym }}</div>
+            <span class="topic-text">{{ q }}</span>
+          </div>
+        </div>
+        {% set shown.n = shown.n + 1 %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ─── JavaScript ──────────────────────────────────────── -->
+<script>
+// fintechTerms + highlightTerms(text, seen) available from fintech.js
+
+const chatMessages = document.getElementById('chat-messages');
+const learnForm    = document.getElementById('learn-form');
+const learnInput   = document.getElementById('learn-input');
+const learnSubmit  = document.getElementById('learn-submit');
+
+// In-memory conversation history for multi-turn context
+const history = [];
+
+// ── Render AI text: markdown → HTML with first-occurrence term highlighting
+function renderLearnHtml(text) {
+    let html = text
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g,'<em>$1</em>');
+
+    const seen = new Set();
+    return html.split(/\n\n+/).filter(p => p.trim()).map(p => {
+        p = p.trim();
+        if (/^[*\-•]\s/m.test(p)) {
+            const items = p.split('\n').filter(l => l.trim()).map(l =>
+                `<li style="margin-bottom:0.3rem;">${highlightTerms(l.replace(/^[*\-•]\s*/,''), seen)}</li>`
+            ).join('');
+            return `<ul style="padding-left:1.2rem;margin:0.4rem 0 0.8rem;">${items}</ul>`;
+        }
+        return `<p style="margin:0 0 0.65rem;line-height:1.75;">${highlightTerms(p, seen)}</p>`;
+    }).join('');
+}
+
+// ── Append a message bubble to the chat
+function appendBubble(role, html) {
+    const row = document.createElement('div');
+    row.className = `chat-row chat-row-${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'chat-avatar';
+    avatar.textContent = role === 'user' ? '🙋' : '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = `chat-bubble chat-bubble-${role}`;
+    bubble.innerHTML = html;
+
+    if (role === 'user') {
+        row.appendChild(bubble);
+        row.appendChild(avatar);
+    } else {
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+    }
+    chatMessages.appendChild(row);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return bubble;
+}
+
+// ── Show a loading bubble and return a handle to replace it
+function appendLoadingBubble() {
+    const row = document.createElement('div');
+    row.className = 'chat-row chat-row-ai';
+    row.id = 'loading-row';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'chat-avatar';
+    avatar.textContent = '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'chat-bubble chat-bubble-ai chat-loading';
+    bubble.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span>&nbsp;Thinking… this usually takes a few seconds 🤔';
+
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatMessages.appendChild(row);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return row;
+}
+
+// ── Submit a question
+async function submitQuestion(question) {
+    if (!question.trim()) return;
+    learnInput.value = '';
+    learnSubmit.disabled = true;
+
+    appendBubble('user', question.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'));
+
+    const loadingRow = appendLoadingBubble();
+
+    try {
+        const res  = await fetch('/learn/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ question, history })
+        });
+        const data = await res.json();
+        loadingRow.remove();
+
+        if (!res.ok || data.error) {
+            appendBubble('ai', `<span style="color:#dc2626;">${data.error || 'Something went wrong. Please try again.'}</span>`);
+        } else {
+            appendBubble('ai', renderLearnHtml(data.answer));
+            history.push({ q: question, a: data.answer });
+        }
+    } catch (e) {
+        loadingRow.remove();
+        appendBubble('ai', '<span style="color:#dc2626;">Our AI teacher is taking a short break. Try again in a moment!</span>');
+    } finally {
+        learnSubmit.disabled = false;
+        learnInput.focus();
+    }
+}
+
+// ── Form submit
+learnForm.addEventListener('submit', e => {
+    e.preventDefault();
+    submitQuestion(learnInput.value.trim());
+});
+
+// ── Topic / personalized lesson card clicks
+document.querySelectorAll('.topic-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const q = card.dataset.question;
+        if (q) {
+            document.getElementById('chat-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            setTimeout(() => submitQuestion(q), 350);
+        }
+    });
+});
+</script>
 {% endblock %}

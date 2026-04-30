@@ -2,15 +2,33 @@
   "1": {
     "username": "ranch",
     "password_hash": "scrypt:32768:8:1$g30JDDrJcgP1t5xy$f4b1b42c81e7147bc762df24afdf3fc91a2a63573a4b62136b7898e0a9d87e1cbbe37085ed44e3d286de3b12c278d5b95ea77763bf0d27ab6ec7c2fb691a30ea",
-    "portfolio": [],
+    "portfolio": [
+      {
+        "Symbol": "AAPL",
+        "Shares": "15",
+        "Buy Price": "150.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "VOO",
+        "Shares": "5",
+        "Buy Price": "400.00",
+        "Sell Price": "",
+        "Sell Date": ""
+      },
+      {
+        "Symbol": "NVDA",
+        "Shares": "10",
+        "Buy Price": "400.00",
+        "Sell Price": "550.00",
+        "Sell Date": "2024-03-01"
+      }
+    ],
     "watchlist": [
       {
         "symbol": "AAPL",
         "description": "Apple Inc."
-      },
-      {
-        "symbol": "SNDK",
-        "description": "Sandisk Corporation"
       }
     ]
   },

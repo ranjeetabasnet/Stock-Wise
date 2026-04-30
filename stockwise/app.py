@@ -22,16 +22,25 @@ from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
-import google.generativeai as genai
+from google import genai as google_genai
+from google.genai import types as genai_types
 
 
 load_dotenv()
-# yfinance does not require API keys
 FINNHUB_API_KEY = None
-# Initialize Gemini API
 GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+_gemini_client = google_genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+GEMINI_MODEL = 'gemini-flash-latest'  # 1.5-flash alias; works on free tier
+
+def _gemini_text(resp):
+    """Safely extract text from a Gemini response (handles thinking-model empty .text)."""
+    if resp and resp.text:
+        return resp.text.strip()
+    try:
+        parts = resp.candidates[0].content.parts
+        return ''.join(p.text for p in parts if getattr(p, 'text', None)).strip()
+    except Exception:
+        return None
 
 
 app = Flask(__name__)
@@ -237,10 +246,6 @@ def index():
 # Watchlist add/search/validate
 @app.route('/add_watchlist', methods=['POST'])
 def add_watchlist():
-    # require login
-    if not current_user.is_authenticated:
-        return jsonify({'success': False, 'error': 'Please log in to add to your watchlist.'}), 401
-
     ticker = request.form.get('watchlist_ticker', '').strip().upper()
     if not ticker:
         return jsonify({'success': False, 'error': 'Please enter a ticker symbol.'}), 400
@@ -385,6 +390,65 @@ def logout():
     logout_user()
     return redirect(url_for('index'))
 
+@app.route('/learn')
+def learn():
+    if current_user.is_authenticated:
+        users = load_users()
+        user_data = users.get(str(current_user.id), {})
+        portfolio = user_data.get('portfolio', [])
+    else:
+        portfolio = session.get('portfolio', [])
+    return render_template('learn.html', portfolio=portfolio)
+
+
+@app.route('/learn/ask', methods=['POST'])
+def learn_ask():
+    if not _gemini_client:
+        return jsonify({'error': 'AI not configured'}), 500
+
+    data = request.json or {}
+    question = data.get('question', '').strip()
+    history  = data.get('history', [])
+
+    if not question:
+        return jsonify({'error': 'Please enter a question'}), 400
+
+    # Build multi-turn context from recent history (last 5 exchanges)
+    context_parts = []
+    for turn in history[-5:]:
+        q = turn.get('q', '').strip()
+        a = turn.get('a', '').strip()
+        if q and a:
+            context_parts.append(f"Student: {q}\nTeacher: {a}")
+    context_parts.append(f"Student: {question}")
+    context = '\n\n'.join(context_parts)
+
+    try:
+        response = _gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=context,
+            config=genai_types.GenerateContentConfig(
+                temperature=0.4,
+                max_output_tokens=800,
+                system_instruction=(
+                    "You are a patient, friendly investing teacher for complete beginners. "
+                    "Your student may have never invested before. Always explain concepts using "
+                    "simple everyday analogies. When relevant, refer to real stock examples "
+                    "(especially popular ones like Apple, Tesla, or S&P 500 index funds). "
+                    "Never recommend specific stocks to buy or sell — you are an educator, not an advisor. "
+                    "Keep answers under 200 words unless the user explicitly asks for more detail."
+                )
+            )
+        )
+        answer = _gemini_text(response)
+        if not answer:
+            return jsonify({'error': 'Could not generate an answer. Please try again.'}), 500
+        return jsonify({'answer': answer})
+    except Exception as e:
+        print('learn_ask error:', e)
+        return jsonify({'error': 'Our AI teacher is taking a short break. Try again in a moment!'}), 500
+
+
 @app.route('/stock/<ticker>')
 def stock_detail(ticker):
     return render_template('stock_detail.html', ticker=ticker)
@@ -458,6 +522,39 @@ def api_stats(ticker):
     except Exception as e:
         print('Stats API error:', e)
         return jsonify({'error': 'Error fetching stats'}), 500
+
+
+@app.route('/api/quote/<ticker>')
+def api_quote(ticker):
+    try:
+        tk = yf.Ticker(ticker)
+        info = getattr(tk, 'info', {}) or {}
+        price = (info.get('regularMarketPrice') or
+                 info.get('currentPrice') or
+                 info.get('previousClose'))
+        prev_close = (info.get('previousClose') or
+                      info.get('regularMarketPreviousClose'))
+        change = info.get('regularMarketChange')
+        change_pct = info.get('regularMarketChangePercent')
+        company_name = info.get('shortName') or info.get('longName') or ticker
+
+        if price and prev_close:
+            if change is None:
+                change = round(float(price) - float(prev_close), 4)
+            if change_pct is None:
+                change_pct = round((float(price) - float(prev_close)) / float(prev_close) * 100, 4)
+
+        return jsonify({
+            'ticker': ticker.upper(),
+            'company_name': company_name,
+            'price': price,
+            'previous_close': prev_close,
+            'change': change,
+            'change_pct': change_pct
+        })
+    except Exception as e:
+        print('Quote API error:', e)
+        return jsonify({'error': 'Could not fetch quote data'}), 500
 
 
 def fetch_article_text(url, max_chars=3000):
@@ -575,20 +672,23 @@ def _cache_set(key, summary):
 
 def _summarize_via_gemini(text, length):
     """Summarize text using Gemini API with beginner-friendly language."""
-    if not GEMINI_API_KEY:
+    if not _gemini_client:
         return None
     try:
-        prompt = f"You are a friendly financial coach explaining news to complete beginners. Summarize this news article in plain English without jargon:\n\n{text}\n\nKeep it 2-3 sentences and encouraging."
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
+        prompt = (
+            "You are a friendly financial coach explaining news to complete beginners. "
+            "Summarize this news article in plain English without jargon:\n\n"
+            f"{text}\n\nKeep it 2-3 sentences and encouraging."
+        )
+        response = _gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
                 temperature=0.2,
-                max_output_tokens=min(512, int(length / 2) + 100)
+                max_output_tokens=1024
             )
         )
-        if response and response.text:
-            return response.text.strip()
+        return _gemini_text(response)
     except Exception as e:
         print('Gemini summarize error:', e)
     return None
@@ -656,6 +756,94 @@ def api_news(ticker):
         return jsonify({'ticker': ticker.upper(), 'company_name': '', 'articles': []})
 
 
+@app.route('/api/ai_summary/<ticker>')
+def api_ai_summary(ticker):
+    """Generate a single beginner-friendly Gemini overview of all recent news (Phase 4)."""
+    if not GEMINI_API_KEY:
+        return jsonify({'error': 'AI features not configured'}), 500
+
+    try:
+        company_name = ticker
+        try:
+            t = yf.Ticker(ticker)
+            company_name = t.info.get('shortName') or ticker
+        except Exception:
+            pass
+
+        # Fetch news headlines from Google News RSS
+        query = f"{company_name} {ticker} stock"
+        rss_url = 'https://news.google.com/rss/search?q=' + urllib.parse.quote(query) + '&hl=en-US&gl=US&ceid=US:en'
+        hdr = {'User-Agent': 'Mozilla/5.0'}
+        resp = requests.get(rss_url, headers=hdr, timeout=8)
+
+        articles = []
+        headline_lines = []
+
+        if resp.status_code == 200:
+            import xml.etree.ElementTree as ET
+            root = ET.fromstring(resp.content)
+            for itm in root.findall('.//item')[:10]:
+                title = itm.findtext('title') or ''
+                link = itm.findtext('link') or ''
+                source = itm.findtext('source') or ''
+                desc = re.sub(r'<[^>]+>', '', itm.findtext('description') or '').strip()
+
+                if title and ' - ' in title and not source:
+                    parts = title.rsplit(' - ', 1)
+                    title = parts[0].strip()
+                    source = parts[1].strip()
+
+                if title:
+                    line = f"- {title}"
+                    if desc:
+                        line += f": {desc[:150]}"
+                    headline_lines.append(line)
+                    articles.append({'title': title, 'link': link, 'publisher': source.strip()})
+
+        if not headline_lines:
+            return jsonify({'error': 'No news articles found to summarize'}), 404
+
+        headlines_text = '\n'.join(headline_lines)
+        prompt = (
+            f"Here are recent news headlines about {ticker} ({company_name}):\n"
+            f"{headlines_text}\n\n"
+            "Please write a 3-4 paragraph beginner-friendly summary of what's been happening "
+            "with this company. Highlight any important trends. At the end, include a "
+            "'Key Terms Explained' section with bullet points defining any financial terms "
+            "you used, in the simplest possible language."
+        )
+
+        response = _gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
+                temperature=0.3,
+                max_output_tokens=1500,
+                system_instruction=(
+                    "You are a friendly financial coach who explains stock news to complete beginners. "
+                    "Use simple, encouraging language. Never use jargon without explaining it. "
+                    "Keep explanations short and reassuring. Always present both the positive and "
+                    "negative sides of any news so the user gets a balanced view."
+                )
+            )
+        )
+
+        summary = _gemini_text(response)
+        if not summary:
+            return jsonify({'error': 'Could not generate summary'}), 500
+
+        return jsonify({
+            'ticker': ticker.upper(),
+            'company_name': company_name,
+            'summary': summary,
+            'articles': articles
+        })
+
+    except Exception as e:
+        print('AI summary error:', e)
+        return jsonify({'error': 'Could not generate AI summary. Please try again.'}), 500
+
+
 @app.route('/api/summarize', methods=['POST'])
 def api_summarize():
     payload = request.json or {}
@@ -698,44 +886,44 @@ def api_summarize():
 @app.route('/api/retrospective/<ticker>', methods=['POST'])
 def api_retrospective(ticker):
     """Generate a Gemini-powered retrospective for a sold stock."""
-    if not GEMINI_API_KEY:
+    if not _gemini_client:
         return jsonify({'error': 'Gemini API not configured'}), 500
-    
+
     data = request.json or {}
     company_name = data.get('company_name', ticker)
     buy_price = data.get('buy_price', 0)
     sell_price = data.get('sell_price', 0)
     current_price = data.get('current_price', 0)
     shares = data.get('shares', 1)
-    
+
     try:
         actual_value = sell_price * shares
         hypothetical_value = current_price * shares
         actual_gain = (sell_price - buy_price) * shares
         hypothetical_gain = (current_price - buy_price) * shares
-        
-        prompt = f"""A beginner investor bought {shares} shares of {ticker} ({company_name}) at ${buy_price} each. 
-They sold at ${sell_price} on their sell date, making ${actual_gain:.2f} ({((sell_price - buy_price) / buy_price * 100):.1f}%).
 
-Since they sold, the stock price has gone from ${sell_price} to ${current_price}, which means if they had held, 
-their position would now be worth ${hypothetical_value:.2f} instead of ${actual_value:.2f}.
+        prompt = (
+            f"A beginner investor bought {shares} shares of {ticker} ({company_name}) at ${buy_price} each. "
+            f"They sold at ${sell_price} on their sell date, making ${actual_gain:.2f} "
+            f"({((sell_price - buy_price) / buy_price * 100):.1f}%).\n\n"
+            f"Since they sold, the stock price has gone from ${sell_price} to ${current_price}, "
+            f"which means if they had held, their position would now be worth ${hypothetical_value:.2f} "
+            f"instead of ${actual_value:.2f}.\n\n"
+            "Write a short, encouraging 2-paragraph reflection that:\n"
+            "1. Validates their decision to sell (they had a reason and that's okay)\n"
+            "2. Explains what signs an app like StockWise could have shown them that might have helped them decide\n\n"
+            "Be supportive and educational, not critical. Focus on learning, not regret."
+        )
 
-Write a short, encouraging 2-paragraph reflection that:
-1. Validates their decision to sell (they had a reason and that's okay)
-2. Explains what signs an app like StockWise could have shown them that might have helped them decide
-
-Be supportive and educational, not critical. Focus on learning, not regret."""
-        
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
+        response = _gemini_client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
                 temperature=0.3,
-                max_output_tokens=400
+                max_output_tokens=1024
             )
         )
-        
-        retrospective = response.text.strip() if response and response.text else "Unable to generate reflection."
+        retrospective = _gemini_text(response) or "Unable to generate reflection."
         
         return jsonify({
             'ticker': ticker,

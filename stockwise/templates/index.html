@@ -2,110 +2,371 @@
 {% block content %}
 
 {% if not current_user.is_authenticated %}
-<section class="hero">
-  <div class="container hero-inner">
-    <div class="hero-left">
-      <h1>Stocks, made simple.</h1>
-      <p class="lead">Track your holdings, build a watchlist, and learn the basics.</p>
-      <div class="hero-ctas">
-        <a class="btn primary" href="/signup">Sign up</a>
-        <a class="btn" href="/learn">Learn</a>
+<!-- ═══════════════════════════════════════════════════════
+     LANDING HERO — shown to guests only
+════════════════════════════════════════════════════════ -->
+<div class="hero-section" style="margin:-2rem -1rem 0;padding-left:1rem;padding-right:1rem;">
+  <div class="container" style="padding-top:0;padding-bottom:0;">
+    <div class="hero-inner">
+
+      <div class="hero-left">
+        <span class="hero-eyebrow">✦ Free for beginners</span>
+        <h1 class="hero-title">
+          Understand the stock<br>market,
+          <span class="accent">one step at a time.</span>
+        </h1>
+        <p class="hero-subtitle">
+          StockWise explains your investments in plain English — no Wall Street jargon,
+          no confusing charts, just clear answers powered by AI.
+        </p>
+        <div class="hero-ctas">
+          <a href="/signup" class="btn primary" style="font-size:1rem;padding:0.8rem 1.8rem;">Get started free</a>
+          <a href="/learn" class="btn outline-white" style="font-size:1rem;padding:0.8rem 1.5rem;">See how it works →</a>
+        </div>
+        <div class="hero-pills">
+          <span class="hero-pill">🤖 AI-powered summaries</span>
+          <span class="hero-pill">📈 Live stock prices</span>
+          <span class="hero-pill">🎓 Beginner-friendly</span>
+          <span class="hero-pill">🔒 Free to use</span>
+        </div>
       </div>
-      <ul class="features">
-        <li>Upload past trades</li>
-        <li>Save a watchlist</li>
-      </ul>
-    </div>
-    <div class="hero-right">
-      <div class="card" style="padding:1.5rem;">
-        <h3>Ready to get started?</h3>
-        <p>Create an account to save your portfolio and watchlist across visits.</p>
-        <a href="/signup" class="btn primary">Sign up</a>
+
+      <div class="hero-right">
+        <div class="hero-demo-card">
+          <h3>Live prices</h3>
+          <div class="demo-ticker-row">
+            <div><div class="demo-symbol">AAPL</div><div class="demo-name">Apple Inc.</div></div>
+            <div class="demo-up">$189.50 ▲ +1.2%</div>
+          </div>
+          <div class="demo-ticker-row">
+            <div><div class="demo-symbol">TSLA</div><div class="demo-name">Tesla, Inc.</div></div>
+            <div class="demo-down">$172.30 ▼ −0.8%</div>
+          </div>
+          <div class="demo-ticker-row">
+            <div><div class="demo-symbol">VOO</div><div class="demo-name">Vanguard S&amp;P 500</div></div>
+            <div class="demo-up">$445.10 ▲ +0.5%</div>
+          </div>
+          <div class="demo-ticker-row">
+            <div><div class="demo-symbol">MSFT</div><div class="demo-name">Microsoft Corp.</div></div>
+            <div class="demo-up">$415.20 ▲ +0.9%</div>
+          </div>
+          <div style="margin-top:1rem;padding-top:0.75rem;border-top:1px solid rgba(255,255,255,0.1);font-size:0.8rem;color:rgba(255,255,255,0.45);text-align:center;">
+            Sample data for illustration
+          </div>
+        </div>
       </div>
+
     </div>
   </div>
-</section>
-
-{% else %}
-
-<div class="card">
-    <h1>Welcome to StockWise!</h1>
-    <form method="POST" enctype="multipart/form-data" class="portfolio-upload-form">
-        <label for="portfolio_file"><strong>Upload your portfolio (.csv or .json):</strong></label><br>
-        <input type="file" name="portfolio_file" id="portfolio_file" accept=".csv,.json">
-        <button type="submit">Upload</button>
-        <a href="{{ url_for('sample_portfolio') }}" class="sample-link">Download a sample file</a>
-    </form>
-    {% if upload_error %}
-        <div class="error-msg">{{ upload_error }}</div>
-    {% endif %}
-
-    {% if portfolio %}
-        <h2>Your Portfolio</h2>
-        <table class="portfolio-table">
-            <thead>
-                <tr>
-                    <th>Stock Symbol</th>
-                    <th>Shares Held</th>
-                    <th>Buy Price</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for row in portfolio %}
-                <tr>
-                    <td>{{ row['Symbol'] }}</td>
-                    <td>{{ row['Shares'] }}</td>
-                    <td>${{ row['Buy Price'] }}</td>
-                    <td>
-                        {% if row['Sell Price'] and row['Sell Date'] %}
-                            Sold
-                        {% else %}
-                            Holding
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <div class="placeholder-card">
-            No portfolio uploaded yet. Upload a CSV or JSON file to get started!<br>
-            Not sure what format to use? <a href="{{ url_for('sample_portfolio') }}">Download a sample file</a>.
-        </div>
-    {% endif %}
 </div>
 
-<div class="card">
-    <h2>My Watchlist</h2>
-    <form id="watchlist-form" class="watchlist-form" autocomplete="off">
-        <div style="position:relative;width:100%;">
-            <input type="text" name="watchlist_ticker" id="watchlist_ticker" placeholder="Ticker (e.g. AAPL)" required autocomplete="off">
-            <ul id="ticker-suggestions" class="ticker-suggestions" style="display:none;"></ul>
-        </div>
-        <button type="submit">Add</button>
-    </form>
-    <div id="watchlist-error" class="error-msg" style="display:none;"></div>
-
-    {% if watchlist and watchlist|length > 0 %}
-        <div class="watchlist-grid">
-            {% for item in watchlist %}
-            <div class="watchlist-card" data-symbol="{{ item.symbol }}">
-                <div class="watchlist-symbol">{{ item.symbol }}</div>
-                <div class="watchlist-desc">{{ item.description }}</div>
-                <div class="watchlist-actions">
-                    <a href="/stock/{{ item.symbol }}" class="details-btn">View</a>
-                    <button class="remove-btn" data-symbol="{{ item.symbol }}" title="Remove">×</button>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="placeholder-card">Add a stock to start tracking.</div>
-    {% endif %}
+<!-- Feature cards -->
+<div class="features-section">
+  <p class="features-heading">Everything a beginner needs</p>
+  <p class="features-sub">No experience required. StockWise guides you every step of the way.</p>
+  <div class="features-grid">
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <h3>Track your portfolio</h3>
+      <p>Upload your past trades as a CSV or JSON file. See what you earned, what you sold, and what to learn from it.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🔍</span>
+      <h3>Build a watchlist</h3>
+      <p>Save any stock or ETF you're curious about. Get live prices, key stats, and beginner-friendly explanations.</p>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">🤖</span>
+      <h3>Learn with AI</h3>
+      <p>Ask anything — "What is a dividend?" or "Why did my stock drop?" — and get a clear, jargon-free answer.</p>
+    </div>
+  </div>
 </div>
 
+<!-- Guest note before the functional sections -->
+<div class="info-banner-blue">
+  💡 <strong>Try it now — no account needed.</strong>
+  Your portfolio and watchlist are saved for this browser session.
+  <a href="/signup" style="color:#1d4ed8;font-weight:600;margin-left:0.4rem;">Create a free account →</a>
+  to save them permanently.
+</div>
 {% endif %}
+
+<!-- ═══════════════════════════════════════════════════════
+     PORTFOLIO SECTION (all users)
+════════════════════════════════════════════════════════ -->
+{% if portfolio and not portfolio %}
+<div class="info-banner-green">
+  💡 Tip: Upload your investment history to unlock personalized lessons and trade insights!
+</div>
+{% endif %}
+
+<div class="card">
+  {% if current_user.is_authenticated %}
+    <h2 style="margin-top:0;">Welcome back, {{ current_user.username }}! 👋</h2>
+  {% else %}
+    <h2 style="margin-top:0;">My Portfolio</h2>
+  {% endif %}
+
+  <form method="POST" enctype="multipart/form-data" class="portfolio-upload-form">
+    <label for="portfolio_file" style="font-weight:600;font-size:0.95rem;">
+      Upload your portfolio <span style="color:#64748b;font-weight:400;">(.csv or .json)</span>
+    </label>
+    <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem;">
+      <input type="file" name="portfolio_file" id="portfolio_file" accept=".csv,.json">
+      <button type="submit" class="upload-btn">Upload</button>
+      <a href="{{ url_for('sample_portfolio') }}" class="sample-link">↓ Download sample file</a>
+    </div>
+  </form>
+
+  {% if upload_error %}
+    <div class="error-msg">{{ upload_error }}</div>
+  {% endif %}
+
+  {% if portfolio %}
+    <table class="portfolio-table">
+      <thead>
+        <tr>
+          <th>Stock</th>
+          <th>Shares</th>
+          <th>Buy Price</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in portfolio %}
+        <tr>
+          <td style="font-weight:700;">{{ row['Symbol'] }}</td>
+          <td>{{ row['Shares'] }}</td>
+          <td>${{ row['Buy Price'] }}</td>
+          <td>
+            {% if row['Sell Price'] and row['Sell Date'] %}
+              <span style="background:#fee2e2;color:#dc2626;padding:0.2rem 0.6rem;border-radius:12px;font-size:0.82rem;font-weight:600;">Sold</span>
+            {% else %}
+              <span style="background:#dcfce7;color:#15803d;padding:0.2rem 0.6rem;border-radius:12px;font-size:0.82rem;font-weight:600;">Holding</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="/stock/{{ row['Symbol'] }}" class="details-btn" style="font-size:0.82rem;padding:0.3rem 0.7rem;">View →</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="placeholder-card">
+      No portfolio uploaded yet. Upload a CSV or JSON file to get started!<br>
+      <span style="font-size:0.9rem;color:#94a3b8;">Not sure what format to use?
+        <a href="{{ url_for('sample_portfolio') }}" style="color:#2563eb;">Download a sample file</a>.
+      </span>
+    </div>
+  {% endif %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PHASE 5 — YOUR TRADING STORY (sold stocks only)
+════════════════════════════════════════════════════════ -->
+{% set sold_count = namespace(n=0) %}
+{% if portfolio %}
+  {% for row in portfolio %}
+    {% if row['Sell Price'] and row['Sell Date'] %}
+      {% set sold_count.n = sold_count.n + 1 %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% if sold_count.n > 0 %}
+<div class="card">
+  <h2 style="margin-top:0;">📖 Your Trading Story</h2>
+  <p style="color:#64748b;font-size:0.93rem;margin-top:0;margin-bottom:1.5rem;">
+    For every stock you've already sold, we'll show you what happened next — and what you can learn from it.
+  </p>
+
+  {% for row in portfolio %}
+  {% if row['Sell Price'] and row['Sell Date'] %}
+  {% set t = row['Symbol'] %}
+  <div class="retro-card"
+       data-ticker="{{ t }}"
+       data-shares="{{ row['Shares'] }}"
+       data-buy-price="{{ row['Buy Price'] }}"
+       data-sell-price="{{ row['Sell Price'] }}"
+       data-sell-date="{{ row['Sell Date'] }}">
+
+    <div class="retro-header">
+      <div>
+        <span class="retro-ticker">{{ t }}</span>
+        <span id="retro-company-{{ t }}" class="retro-company">Loading…</span>
+      </div>
+      <span class="retro-date">Sold {{ row['Sell Date'] }}</span>
+    </div>
+
+    <div class="retro-comparison">
+      <div class="retro-side">
+        <div class="retro-side-label">💰 What you received</div>
+        <div id="retro-actual-{{ t }}" class="retro-side-value">
+          <span class="spinner" style="width:16px;height:16px;"></span>
+        </div>
+        <div id="retro-actual-gain-{{ t }}" class="retro-side-sub">—</div>
+      </div>
+      <div class="retro-vs">vs</div>
+      <div class="retro-side">
+        <div class="retro-side-label">📈 If you held until today</div>
+        <div id="retro-hypo-{{ t }}" class="retro-side-value">
+          <span class="spinner" style="width:16px;height:16px;"></span>
+        </div>
+        <div id="retro-hypo-gain-{{ t }}" class="retro-side-sub">—</div>
+      </div>
+    </div>
+
+    <div id="retro-verdict-{{ t }}" class="retro-verdict" style="display:none;"></div>
+
+    <div id="retro-ai-{{ t }}" class="retro-ai">
+      <div style="display:flex;align-items:center;gap:0.5rem;color:#94a3b8;font-size:0.9rem;">
+        <span class="spinner" style="width:16px;height:16px;"></span>
+        Getting your personalised insight…
+      </div>
+    </div>
+
+    <div class="retro-cta">
+      Want to understand this better?
+      <a href="/learn">→ Go to Learn Hub</a>
+    </div>
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<script>
+(async () => {
+  const cards = document.querySelectorAll('.retro-card');
+  for (const card of cards) {
+    const ticker    = card.dataset.ticker;
+    const shares    = parseFloat(card.dataset.shares)   || 1;
+    const buyPrice  = parseFloat(card.dataset.buyPrice) || 0;
+    const sellPrice = parseFloat(card.dataset.sellPrice)|| 0;
+
+    // 1. Fetch current price + company name
+    let currentPrice = sellPrice;
+    let companyName  = ticker;
+    try {
+      const q = await fetch(`/api/quote/${ticker}`).then(r => r.json());
+      if (q.price)        currentPrice = q.price;
+      if (q.company_name) companyName  = q.company_name;
+    } catch(e) { console.error('quote', e); }
+
+    // Update company name
+    const compEl = document.getElementById(`retro-company-${ticker}`);
+    if (compEl) compEl.textContent = companyName !== ticker ? companyName : '';
+
+    // 2. Calculate comparison
+    const actualValue = sellPrice * shares;
+    const hypoValue   = currentPrice * shares;
+    const actualGain  = (sellPrice  - buyPrice) * shares;
+    const hypoGain    = (currentPrice - buyPrice) * shares;
+    const didBetter   = actualValue >= hypoValue;
+
+    const fmt = n => '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+    const sign = n => n >= 0 ? '+' : '−';
+    const col  = n => n >= 0 ? '#16a34a' : '#dc2626';
+
+    const aEl = document.getElementById(`retro-actual-${ticker}`);
+    const hEl = document.getElementById(`retro-hypo-${ticker}`);
+    const agEl= document.getElementById(`retro-actual-gain-${ticker}`);
+    const hgEl= document.getElementById(`retro-hypo-gain-${ticker}`);
+    const vEl = document.getElementById(`retro-verdict-${ticker}`);
+
+    if (aEl)  aEl.textContent  = fmt(actualValue);
+    if (hEl)  hEl.textContent  = fmt(hypoValue);
+    if (agEl) { agEl.textContent = sign(actualGain) + fmt(actualGain) + ' gain'; agEl.style.color = col(actualGain); }
+    if (hgEl) { hgEl.textContent = sign(hypoGain)   + fmt(hypoGain)   + ' gain'; hgEl.style.color = col(hypoGain); }
+
+    if (vEl) {
+      vEl.style.display = 'block';
+      if (didBetter) {
+        const saved = fmt(actualValue - hypoValue);
+        vEl.innerHTML = `✅ <strong>Great timing!</strong> You sold before it dropped further — you came out <strong>${saved} ahead</strong> compared to holding.`;
+        vEl.style.background = '#f0fdf4'; vEl.style.color = '#15803d';
+      } else {
+        const missed = fmt(hypoValue - actualValue);
+        vEl.innerHTML = `📚 If you had held until today, your position would be worth <strong>${missed} more</strong>. Here is what you can learn from this.`;
+        vEl.style.background = '#eff6ff'; vEl.style.color = '#1e40af';
+      }
+    }
+
+    // 3. Fetch AI retrospective
+    const aiEl = document.getElementById(`retro-ai-${ticker}`);
+    try {
+      const r = await fetch(`/api/retrospective/${ticker}`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          company_name: companyName,
+          buy_price:    buyPrice,
+          sell_price:   sellPrice,
+          current_price: currentPrice,
+          shares:       shares
+        })
+      }).then(r => r.json());
+
+      if (aiEl) {
+        if (r.retrospective) {
+          // Lightly format paragraphs
+          const html = r.retrospective
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+            .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+            .split(/\n\n+/).filter(p=>p.trim())
+            .map(p => `<p style="margin:0 0 0.75rem;line-height:1.75;">${p.trim()}</p>`)
+            .join('');
+          aiEl.innerHTML = html;
+        } else {
+          aiEl.innerHTML = '<span style="color:#94a3b8;font-size:0.9rem;">Could not generate insight right now.</span>';
+        }
+      }
+    } catch(e) {
+      console.error('retrospective', e);
+      if (aiEl) aiEl.innerHTML = '<span style="color:#94a3b8;font-size:0.9rem;">Could not load AI insight.</span>';
+    }
+  }
+})();
+</script>
+{% endif %}
+
+<!-- ═══════════════════════════════════════════════════════
+     WATCHLIST SECTION (all users)
+════════════════════════════════════════════════════════ -->
+<div class="card">
+  <h2 style="margin-top:0;">My Watchlist</h2>
+  <form id="watchlist-form" class="watchlist-form" autocomplete="off">
+    <div style="position:relative;flex:1;">
+      <input type="text" name="watchlist_ticker" id="watchlist_ticker"
+             placeholder="Type a ticker, e.g. AAPL, VOO, TSLA" required autocomplete="off">
+      <ul id="ticker-suggestions" class="ticker-suggestions" style="display:none;"></ul>
+    </div>
+    <button type="submit">Add</button>
+  </form>
+  <div id="watchlist-error" class="error-msg" style="display:none;"></div>
+
+  {% if watchlist and watchlist|length > 0 %}
+    <div class="watchlist-grid">
+      {% for item in watchlist %}
+      <div class="watchlist-card" data-symbol="{{ item.symbol }}">
+        <div class="watchlist-symbol">{{ item.symbol }}</div>
+        <div class="watchlist-desc">{{ item.description or 'Stock / ETF' }}</div>
+        <div class="watchlist-actions">
+          <a href="/stock/{{ item.symbol }}" class="details-btn">View Details</a>
+          <button class="remove-btn" data-symbol="{{ item.symbol }}" title="Remove">×</button>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="placeholder-card">
+      Add a stock or ETF above to start tracking it!<br>
+      <span style="font-size:0.9rem;color:#94a3b8;">Try typing AAPL, MSFT, VOO, or TSLA.</span>
+    </div>
+  {% endif %}
+</div>
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

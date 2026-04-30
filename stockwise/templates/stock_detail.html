@@ -1,450 +1,393 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="card">
-    <h1>{{ ticker|upper }}</h1>
-    <div class="stock-meta">
-        <div id="price-summary"><span class="spinner"></span><span class="loading">Loading...</span></div>
-        <div id="stock-stats" class="stock-stats" style="margin-top:0.75rem; color:#334155;"></div>
-    </div>
-    <div id="stats-grid" class="card" style="display:flex;gap:1rem;flex-wrap:wrap;margin-top:0.75rem;">
-        <div class="stat" style="flex:1;min-width:140px;">
-            <div class="stat-label">Market cap</div>
-            <div id="stat-marketcap" class="stat-value" title="Total company value. A bigger market cap usually means a more stable company. Think of it like the 'size' of the company.">—</div>
-        </div>
-        <div class="stat" style="flex:1;min-width:140px;">
-            <div class="stat-label">P/E ratio</div>
-            <div id="stat-pe" class="stat-value" title="Price-to-Earnings: How much you pay for every $1 of profit. Lower is often cheaper, but higher can mean growth potential. Check what's 'normal' for the industry.">—</div>
-        </div>
-        <div class="stat" style="flex:1;min-width:140px;">
-            <div class="stat-label">52w high</div>
-            <div id="stat-52h" class="stat-value" title="The highest price this stock reached in the last year. If current price is near this, the stock might be expensive right now.">—</div>
-        </div>
-        <div class="stat" style="flex:1;min-width:140px;">
-            <div class="stat-label">52w low</div>
-            <div id="stat-52l" class="stat-value" title="The lowest price this stock reached in the last year. If current price is near this, it might be a good buying opportunity—or a warning sign.">—</div>
-        </div>
-        <div class="stat" style="flex:1;min-width:140px;">
-            <div class="stat-label">Volume</div>
-            <div id="stat-vol" class="stat-value" title="How many shares trade on an average day. High volume means it's easy to buy/sell. Low volume can mean fewer buyers/sellers.">—</div>
-        </div>
-        <div class="stat" style="flex:1;min-width:140px;">
-            <div class="stat-label">Change</div>
-            <div id="stat-change" class="stat-value" title="Price movement over your selected time period. Shows if the stock went up or down and by how much in $ and %.">—</div>
-        </div>
-    </div>
-    <div id="news-panel" class="card" style="margin-top:1rem;">
-        <h3>Latest news</h3>
-        <div id="news-list">Loading news…</div>
-    </div>
-    <div class="chart-controls">
-        <button class="range-btn" data-range="1d">1D</button>
-        <button class="range-btn" data-range="1w">1W</button>
-        <button class="range-btn" data-range="1m">1M</button>
-        <button class="range-btn" data-range="3m">3M</button>
-        <button class="range-btn" data-range="6m">6M</button>
-        <button class="range-btn" data-range="1y">1Y</button>
-    </div>
-    <canvas id="priceChart" height="220"></canvas>
+
+<div style="margin-bottom:1.25rem;">
+  <a href="/" class="btn">&larr; Back to Dashboard</a>
 </div>
 
+<!-- ─── Header card: name + price + badge ──────────────── -->
+<div class="card" style="margin-bottom:1rem;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <div style="font-size:0.8rem;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:0.25rem;">
+        {{ ticker|upper }}
+      </div>
+      <h1 id="company-name" style="margin:0 0 0.5rem;font-size:1.75rem;font-weight:800;color:#1a2e4a;">
+        {{ ticker|upper }}
+      </h1>
+      <div style="display:flex;align-items:baseline;gap:0.6rem;flex-wrap:wrap;">
+        <span id="price-display" style="font-size:2rem;font-weight:800;color:#1a2e4a;transition:color 0.3s;">
+          <span class="spinner"></span>
+        </span>
+        <span class="live-badge">
+          <span class="live-dot"></span>LIVE
+        </span>
+      </div>
+      <div id="change-display" style="font-size:0.97rem;margin-top:0.35rem;color:#64748b;">
+        Loading price change…
+      </div>
+      <div id="last-updated" style="font-size:0.78rem;color:#cbd5e1;margin-top:0.2rem;">
+        Updates every 15 seconds
+      </div>
+    </div>
+    <div id="status-badge" style="align-self:flex-start;padding-top:0.3rem;"></div>
+  </div>
+
+  <!-- Stats grid with custom CSS tooltips via data-tooltip -->
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1.5rem;">
+    <div class="stat"
+         data-tooltip="The total combined value of all the company's shares. A larger number usually means a more established, stable business.">
+      <div class="stat-label">Market cap</div>
+      <div id="stat-marketcap" class="stat-value">—</div>
+    </div>
+    <div class="stat"
+         data-tooltip="Price-to-Earnings ratio. A rough measure of how expensive the stock is vs its profits. Lower can mean better value, but compare it to similar companies.">
+      <div class="stat-label">P/E ratio</div>
+      <div id="stat-pe" class="stat-value">—</div>
+    </div>
+    <div class="stat"
+         data-tooltip="The highest price this stock reached over the past year. If today's price is close to this, the stock may be expensive right now.">
+      <div class="stat-label">52-week high</div>
+      <div id="stat-52h" class="stat-value">—</div>
+    </div>
+    <div class="stat"
+         data-tooltip="The lowest price this stock reached over the past year. If today's price is close to this, it could be a buying opportunity — or a warning sign.">
+      <div class="stat-label">52-week low</div>
+      <div id="stat-52l" class="stat-value">—</div>
+    </div>
+    <div class="stat"
+         data-tooltip="How many shares are bought and sold on an average day. Higher volume means it's easier to buy or sell quickly without affecting the price much.">
+      <div class="stat-label">Volume</div>
+      <div id="stat-vol" class="stat-value">—</div>
+    </div>
+  </div>
+
+  <!-- Chart controls -->
+  <div class="chart-controls">
+    <button class="range-btn" data-range="1d">1 Day</button>
+    <button class="range-btn" data-range="1w">1 Week</button>
+    <button class="range-btn" data-range="1m">1 Month</button>
+    <button class="range-btn" data-range="3m">3 Months</button>
+    <button class="range-btn" data-range="6m">6 Months</button>
+    <button class="range-btn" data-range="1y">1 Year</button>
+  </div>
+  <div id="chart-placeholder"
+       style="background:#f8fafc;border:1.5px dashed #e2e8f0;border-radius:10px;height:220px;
+              display:flex;align-items:center;justify-content:center;color:#94a3b8;gap:0.5rem;font-size:0.95rem;">
+    <span class="spinner"></span> Loading chart…
+  </div>
+  <canvas id="priceChart" height="220" style="display:none;"></canvas>
+</div>
+
+<!-- ─── AI News Summary ─────────────────────────────────── -->
+<div class="card">
+  <h3 style="margin-top:0;margin-bottom:0.3rem;">What's been happening with {{ ticker|upper }}?</h3>
+  <p style="color:#64748b;font-size:0.92rem;margin:0 0 1.25rem;">
+    Our AI coach reads the latest news and explains it in plain English.
+    <em style="color:#94a3b8;font-size:0.85rem;">
+      Click any <span style="background:#fef3c7;border-bottom:2px solid #f59e0b;padding:0 3px;border-radius:2px;">highlighted term</span>
+      to learn what it means.
+    </em>
+  </p>
+  <div id="ai-summary-content">
+    <div style="padding:1.5rem;text-align:center;">
+      <span class="spinner" style="width:22px;height:22px;border-width:3px;"></span>
+      <div class="loading" style="margin-top:0.75rem;">Thinking… this usually takes a few seconds 🤔</div>
+    </div>
+  </div>
+  <div id="news-sources-section"
+       style="display:none;margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #f1f5f9;">
+    <h4 style="margin:0 0 0.75rem;font-size:0.95rem;">📰 Where we got this information</h4>
+    <div id="news-sources-list" style="font-size:0.88rem;line-height:2;"></div>
+    <p style="color:#94a3b8;font-size:0.82rem;font-style:italic;margin-top:0.75rem;border-top:1px solid #f1f5f9;padding-top:0.75rem;">
+      ⚠️ Always read the full articles and consult a financial advisor before making investment decisions.
+    </p>
+  </div>
+</div>
+
+<!-- ─── Scripts ─────────────────────────────────────────── -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+// fintechTerms + highlightTerms(text, seen) loaded from fintech.js via base.html
+
 const ticker = '{{ ticker|upper }}';
 let chart = null;
-function drawChart(data){
-        const ctx = document.getElementById('priceChart').getContext('2d');
-        // Use formatted dates for x-axis labels
-        const labels = data.formattedDates || data.dates;
-        const cfg = {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        type: 'line',
-                        label: ticker + ' Close',
-                        data: data.close,
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37,99,235,0.08)',
-                        pointRadius: 0,
-                        yAxisID: 'y'
-                    },
-                    {
-                        type: 'bar',
-                        label: 'Volume',
-                        data: data.volume,
-                        backgroundColor: 'rgba(107,114,128,0.18)',
-                        yAxisID: 'y1'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                interaction: { mode: 'index', intersect: false },
-                scales: {
-                    x: { display: true, grid: { display: false } },
-                    y: { type: 'linear', display: true, position: 'left', ticks: { callback: v => '$' + v } },
-                    y1: { type: 'linear', display: false, position: 'right', grid: { drawOnChartArea: false } }
-                },
-                plugins: {
-                    legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(ctx){
-                                        try{
-                                            if(ctx.dataset && ctx.dataset.type === 'bar'){
-                                                const v = ctx.raw !== undefined ? ctx.raw : ctx.parsed && ctx.parsed.y;
-                                                return 'Vol: ' + (v ? Number(v).toLocaleString() : v);
-                                            }
-                                            const y = ctx.parsed && ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.raw;
-                                            return (ctx.dataset && ctx.dataset.label ? ctx.dataset.label + ': $' : '$') + (y !== undefined ? Number(y).toFixed(2) : y);
-                                        } catch(e){
-                                            return '';
-                                        }
-                                    }
-                                }
-                            }
-                }
-            }
-        };
-        if(chart) chart.destroy();
-        chart = new Chart(ctx, cfg);
-}
+let _lastPrice = null;
+let _lastUpdateTime = Date.now();
+let _updateCounterTimer = null;
 
-async function fetchChart(range='6m'){
-    try{
-        const res = await fetch(`/api/chart/${ticker}?range=${range}`);
-        const js = await res.json();
-        if(res.ok){
-            // Coerce numeric arrays to numbers and ensure lengths match
-            try{
-                js.close = (js.close||[]).map(v=> v===null||v===undefined? null : Number(v));
-                js.open = (js.open||[]).map(v=> v===null||v===undefined? null : Number(v));
-                js.high = (js.high||[]).map(v=> v===null||v===undefined? null : Number(v));
-                js.low = (js.low||[]).map(v=> v===null||v===undefined? null : Number(v));
-                js.volume = (js.volume||[]).map(v=> v===null||v===undefined? null : Number(v));
-                // trim arrays to shortest length to avoid Chart errors
-                const lens = [js.dates.length, js.close.length, js.volume.length, js.open.length, js.high.length, js.low.length].filter(Boolean);
-                const min = Math.min(...lens);
-                if(isFinite(min)){
-                    js.dates = js.dates.slice(-min);
-                    js.close = js.close.slice(-min);
-                    js.open = js.open.slice(-min);
-                    js.high = js.high.slice(-min);
-                    js.low = js.low.slice(-min);
-                    js.volume = js.volume.slice(-min);
-                }
-            } catch(e){
-                console.error('Data normalization error', e, js);
-            }
-            // pre-format dates for readability depending on range
-            try{
-                const fmt = (dStr)=>{
-                    const d = new Date(dStr);
-                    if(isNaN(d)) return dStr;
-                    // Always show dates only, no timestamps
-                    return d.toLocaleDateString([], {month:'short', day:'numeric'});
-                }
-                js.formattedDates = js.dates.map(fmt);
-            } catch(e){ js.formattedDates = js.dates }
-            drawChart(js);
-            const last = js.close && js.close.length ? js.close[js.close.length-1] : null;
-            const display = last !== null && last !== undefined ? Number(last).toFixed(2) : 'n/a';
-            // remove spinner and show value
-            document.getElementById('price-summary').innerHTML = `Latest close: $${display}`;
-            // mark active range button
-            document.querySelectorAll('.range-btn').forEach(b=> b.classList.toggle('active', b.dataset.range===range));
-            // compute change over visible range
-            try{
-                const c = js.close;
-                if(c && c.length>1){
-                    const first = c[0];
-                    const last = c[c.length-1];
-                    const pct = ((last-first)/first)*100;
-                    const sign = pct>=0? '+' : '';
-                    const el = document.getElementById('stat-change');
-                    el.innerText = `${sign}${pct.toFixed(2)}% (${(last-first).toFixed(2)})`;
-                    el.style.color = pct>=0? 'green':'#b91c1c';
-                }
-            } catch(e){ console.error(e) }
-        } else {
-            document.getElementById('price-summary').innerText = js.error || 'No data';
-        }
-        } catch(e){
-            console.error('Fetch/chart error', e);
-            document.getElementById('price-summary').innerText = 'Error fetching chart';
-        }
-}
-
-document.querySelectorAll('.range-btn').forEach(b=>{
-    b.addEventListener('click', ()=>{
-        fetchChart(b.dataset.range);
-    });
-});
-
-// default active
-document.querySelectorAll('.range-btn').forEach(b=> b.classList.toggle('active', b.dataset.range==='6m'));
-fetchChart('6m');
-
-// Auto-refresh chart every 30 seconds for live updates
-setInterval(() => {
-    const activeBtn = document.querySelector('.range-btn.active');
-    const activeRange = activeBtn ? activeBtn.dataset.range : '6m';
-    fetchChart(activeRange);
-}, 30000);
-
-async function fetchStats(){
-    try{
-        const res = await fetch(`/api/stats/${ticker}`);
-        const js = await res.json();
-        if(res.ok){
-            const parts = [];
-            if(js.price) parts.push(`Price: $${js.price}`);
-            if(js.marketCap) parts.push(`Market cap: ${formatLarge(js.marketCap)}`);
-            if(js.pe) parts.push(`P/E: ${js.pe}`);
-            if(js['52WeekHigh'] && js['52WeekLow']) parts.push(`52w: ${js['52WeekLow']}–${js['52WeekHigh']}`);
-            if(js.volume) parts.push(`Vol: ${js.volume.toLocaleString()}`);
-            document.getElementById('stock-stats').innerText = parts.join(' • ');
-            // populate stats grid
-            const fmt = v => v===null||v===undefined? '—' : (typeof v === 'number' && v>=1000 ? Number(v).toLocaleString() : v);
-            document.getElementById('stat-marketcap').innerText = js.marketCap? formatLarge(js.marketCap) : '—';
-            document.getElementById('stat-pe').innerText = js.pe? Number(js.pe).toFixed(2) : '—';
-            document.getElementById('stat-52h').innerText = js['52WeekHigh']? Number(js['52WeekHigh']).toFixed(2) : '—';
-            document.getElementById('stat-52l').innerText = js['52WeekLow']? Number(js['52WeekLow']).toFixed(2) : '—';
-            document.getElementById('stat-vol').innerText = js.volume? Number(js.volume).toLocaleString() : '—';
-        } else {
-            document.getElementById('stock-stats').innerText = '';
-        }
-    } catch(e){
-        document.getElementById('stock-stats').innerText = '';
-    }
-}
-
-function formatLarge(n){
-    if(n === null || n === undefined) return '';
-    if(n >= 1e12) return (n/1e12).toFixed(2)+'T';
-    if(n >= 1e9) return (n/1e9).toFixed(2)+'B';
-    if(n >= 1e6) return (n/1e6).toFixed(2)+'M';
+// ── Helpers ─────────────────────────────────────────────
+function formatLarge(n) {
+    if (n == null) return '—';
+    if (n >= 1e12) return (n/1e12).toFixed(2) + 'T';
+    if (n >= 1e9)  return (n/1e9).toFixed(2)  + 'B';
+    if (n >= 1e6)  return (n/1e6).toFixed(2)  + 'M';
     return n.toLocaleString();
 }
 
-fetchStats();
+// ── Last-updated counter ─────────────────────────────────
+function startUpdateCounter() {
+    _lastUpdateTime = Date.now();
+    clearInterval(_updateCounterTimer);
+    _updateCounterTimer = setInterval(() => {
+        const secs = Math.round((Date.now() - _lastUpdateTime) / 1000);
+        const el = document.getElementById('last-updated');
+        if (el) el.textContent = secs < 5 ? 'Updated just now' : `Updated ${secs}s ago • refreshes every 15s`;
+    }, 1000);
+}
 
-// --- News panel + summarization (Phase 4) ---
-async function fetchNews(){
-    const listEl = document.getElementById('news-list');
-    listEl.innerHTML = '<div style="padding:1rem; text-align:center;"><span class="spinner"></span> <span class="loading">Loading news…</span></div>';
-    try{
-        const res = await fetch(`/api/news/${ticker}`);
-        const data = await res.json();
-        
-        if(!data || !data.articles || data.articles.length === 0){
-            listEl.innerText = 'No recent news available right now.';
+// ── Range change display ─────────────────────────────────
+const rangeLabels = {
+    '1d': 'today', '1w': 'this week', '1m': 'this month',
+    '3m': 'past 3 months', '6m': 'past 6 months', '1y': 'this year'
+};
+
+function updateRangeChange(change, changePct, range) {
+    const sign  = change >= 0 ? '+' : '';
+    const color = change >= 0 ? '#16a34a' : '#dc2626';
+    const label = rangeLabels[range] || range;
+    const abs   = Math.abs(change).toFixed(2);
+    document.getElementById('change-display').innerHTML =
+        `<span style="color:${color};font-weight:700;">${sign}$${abs}&nbsp;(${sign}${changePct.toFixed(2)}%)&nbsp;${label}</span>`;
+    const badge = document.getElementById('status-badge');
+    if (changePct > 0.5)
+        badge.innerHTML = `<span class="status-badge badge-up">📈 Up ${label}</span>`;
+    else if (changePct < -0.5)
+        badge.innerHTML = `<span class="status-badge badge-down">📉 Down ${label}</span>`;
+    else
+        badge.innerHTML = `<span class="status-badge badge-flat">➡️ Holding steady ${label}</span>`;
+}
+
+// ── Quote — updates price and company name only ───────────
+async function fetchQuote() {
+    try {
+        const res = await fetch(`/api/quote/${ticker}`);
+        const js  = await res.json();
+        if (!res.ok || js.error) {
+            document.getElementById('price-display').innerHTML = '<span style="color:#94a3b8;">Price unavailable</span>';
             return;
         }
-        
-        // Add sources section below news
-        renderNews(data.articles);
-        
-        // Add sources section at bottom
-        const sourcesSection = document.createElement('div');
-        sourcesSection.style.marginTop = '1.5rem';
-        sourcesSection.style.paddingTop = '1rem';
-        sourcesSection.style.borderTop = '1px solid #e2e8f0';
-        sourcesSection.innerHTML = '<h4 style="margin-bottom:0.8rem;">📰 Where we got this information</h4>';
-        
-        const sourcesList = document.createElement('div');
-        sourcesList.style.fontSize = '0.9rem';
-        sourcesList.style.color = '#64748b';
-        
-        data.articles.forEach((art, idx) => {
-            if(art.link){
-                const link = document.createElement('a');
-                link.href = art.link;
-                link.target = '_blank';
-                link.rel = 'noreferrer noopener';
-                link.style.display = 'block';
-                link.style.marginBottom = '0.5rem';
-                link.style.color = '#2563eb';
-                link.style.textDecoration = 'none';
-                link.innerHTML = `${idx+1}. ${art.publisher || 'Source'}: ${art.title}`;
-                sourcesList.appendChild(link);
+
+        if (js.company_name && js.company_name !== ticker)
+            document.getElementById('company-name').textContent = js.company_name;
+
+        const priceEl = document.getElementById('price-display');
+        if (js.price) {
+            const newP = Number(js.price).toFixed(2);
+            if (_lastPrice !== null && _lastPrice !== newP) {
+                const cls = parseFloat(newP) > parseFloat(_lastPrice) ? 'price-up-flash' : 'price-down-flash';
+                priceEl.classList.remove('price-up-flash', 'price-down-flash');
+                void priceEl.offsetWidth;
+                priceEl.classList.add(cls);
+                setTimeout(() => priceEl.classList.remove(cls), 800);
             }
-        });
-        
-        if(sourcesList.children.length > 0){
-            const disclaimer = document.createElement('div');
-            disclaimer.style.marginTop = '0.8rem';
-            disclaimer.style.color = '#71717a';
-            disclaimer.style.fontSize = '0.85rem';
-            disclaimer.style.fontStyle = 'italic';
-            disclaimer.innerHTML = '⚠️ Always read the full articles and consult a financial advisor before making investment decisions.';
-            sourcesSection.appendChild(sourcesList);
-            sourcesSection.appendChild(disclaimer);
-            listEl.parentElement.appendChild(sourcesSection);
+            _lastPrice = newP;
+            priceEl.textContent = '$' + newP;
+        } else {
+            priceEl.innerHTML = '<span style="color:#94a3b8;">Price unavailable</span>';
         }
-    } catch(e){
-        console.error('News fetch error', e);
-        listEl.innerText = 'Error loading news. Please refresh and try again.';
+
+        startUpdateCounter();
+    } catch (e) {
+        console.error('Quote error', e);
+        document.getElementById('price-display').innerHTML = '<span style="color:#94a3b8;">Price unavailable</span>';
     }
 }
 
-function highlightTerms(text){
-    if(!text) return text;
-    const terms = {
-        'earnings': 'Company profits over a period',
-        'revenue': 'Total income before expenses',
-        'dividend': 'A payment some companies make to shareholders',
-        'etf': 'A fund that tracks a basket of stocks',
-        'p/e ratio': 'A rough measure of how expensive a stock is',
-        'p/e': 'A rough measure of how expensive a stock is',
-        'bear market': 'A market expected to fall',
-        'bull market': 'A market expected to rise',
-        'portfolio': 'Your collection of investments',
-        'volatility': 'How much a stock price jumps around',
-        'market cap': 'The total value of the company in dollars',
-        'yield': 'The return you get from dividends',
-        'ipo': 'When a company first sells shares to the public',
-        'hedge fund': 'An aggressive investment fund',
-        'index fund': 'A fund that copies a stock market index',
-        'short selling': 'Betting that a stock will go down',
-        'options': 'Contracts that let you buy/sell at a future price',
-        'inflation': 'When prices rise and money is worth less',
-        'interest rate': 'The cost of borrowing money',
-        'fiscal quarter': 'A 3-month business period',
-        'sec filing': 'Official company reports to regulators',
-        'guidance': 'A company\'s forecast for future earnings',
-        'analyst': 'An expert who predicts stock prices',
-        'valuation': 'An estimate of what a company is worth',
-        'volume': 'How many shares trade in a period'
+// ── Stats ────────────────────────────────────────────────
+async function fetchStats() {
+    try {
+        const res = await fetch(`/api/stats/${ticker}`);
+        const js  = await res.json();
+        if (res.ok) {
+            document.getElementById('stat-marketcap').textContent = js.marketCap     ? formatLarge(js.marketCap) : '—';
+            document.getElementById('stat-pe').textContent        = js.pe            ? Number(js.pe).toFixed(2)   : '—';
+            document.getElementById('stat-52h').textContent       = js['52WeekHigh'] ? '$' + Number(js['52WeekHigh']).toFixed(2) : '—';
+            document.getElementById('stat-52l').textContent       = js['52WeekLow']  ? '$' + Number(js['52WeekLow']).toFixed(2)  : '—';
+            document.getElementById('stat-vol').textContent       = js.volume        ? Number(js.volume).toLocaleString() : '—';
+        }
+    } catch (e) { console.error('Stats error', e); }
+}
+
+// ── Chart ────────────────────────────────────────────────
+function drawChart(data) {
+    const ph  = document.getElementById('chart-placeholder');
+    const cvs = document.getElementById('priceChart');
+    ph.style.display  = 'none';
+    cvs.style.display = 'block';
+
+    const cfg = {
+        type: 'bar',
+        data: {
+            labels: data.formattedDates || data.dates,
+            datasets: [
+                {
+                    type: 'line',
+                    label: 'Price (USD)',
+                    data: data.close,
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37,99,235,0.06)',
+                    pointRadius: 0,
+                    tension: 0.3,
+                    yAxisID: 'y'
+                },
+                {
+                    type: 'bar',
+                    label: 'Volume',
+                    data: data.volume,
+                    backgroundColor: 'rgba(148,163,184,0.2)',
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: { display: true, grid: { display: false } },
+                y: {
+                    display: true, position: 'left',
+                    title: { display: true, text: 'Price (USD)', font: { size: 11 } },
+                    ticks: { callback: v => '$' + v }
+                },
+                y1: { display: false, position: 'right', grid: { drawOnChartArea: false } }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label(ctx) {
+                            try {
+                                if (ctx.dataset.type === 'bar')
+                                    return 'Volume: ' + Number(ctx.raw).toLocaleString();
+                                return 'Price: $' + Number(ctx.parsed.y).toFixed(2);
+                            } catch { return ''; }
+                        }
+                    }
+                }
+            }
+        }
     };
-    
-    let result = text;
-    // Sort by length (longest first) to avoid partial matches
-    const sortedTerms = Object.keys(terms).sort((a,b) => b.length - a.length);
-    sortedTerms.forEach(term => {
-        const re = new RegExp('\\b' + term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'gi');
-        result = result.replace(re, (match) => {
-            return `<span class="fintech-term" data-term="${term}" title="${terms[term]}">${match}</span>`;
-        });
-    });
-    return result;
+    if (chart) chart.destroy();
+    chart = new Chart(document.getElementById('priceChart').getContext('2d'), cfg);
 }
 
-function renderNews(items){
-    const listEl = document.getElementById('news-list');
-    listEl.innerHTML = '';
-    
-    if(!items || items.length === 0){
-        listEl.innerHTML = '<div style="color:#64748b; padding:1rem;">No recent news found.</div>';
-        return;
+async function fetchChart(range = '6m') {
+    const ph  = document.getElementById('chart-placeholder');
+    const cvs = document.getElementById('priceChart');
+    ph.innerHTML = '<span class="spinner"></span>&nbsp;Loading chart…';
+    ph.style.cssText = ph.style.cssText.replace('display:none', '') || (ph.style.display = 'flex');
+    cvs.style.display = 'none';
+
+    try {
+        const res = await fetch(`/api/chart/${ticker}?range=${range}`);
+        const js  = await res.json();
+        if (!res.ok) throw new Error(js.error || 'failed');
+
+        js.close  = (js.close  || []).map(v => v == null ? null : +v);
+        js.volume = (js.volume || []).map(v => v == null ? null : +v);
+        const min = Math.min(js.dates.length, js.close.length, js.volume.length);
+        ['dates','close','volume'].forEach(k => { js[k] = js[k].slice(-min); });
+        js.formattedDates = js.dates.map(d => {
+            const dt = new Date(d);
+            return isNaN(dt) ? d : dt.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        });
+
+        drawChart(js);
+        document.querySelectorAll('.range-btn').forEach(b =>
+            b.classList.toggle('active', b.dataset.range === range));
+
+        // Update change display based on first → last close for selected range
+        const closes = js.close.filter(v => v != null);
+        if (closes.length >= 2) {
+            const first = closes[0];
+            const last  = closes[closes.length - 1];
+            const chg   = last - first;
+            const pct   = (chg / first) * 100;
+            updateRangeChange(chg, pct, range);
+        }
+    } catch (e) {
+        console.error('Chart error', e);
+        ph.innerHTML = '<span style="color:#ef4444;">⚠️ Could not load chart. Try again in a moment.</span>';
+        ph.style.display = 'flex';
+        cvs.style.display = 'none';
     }
-    
-    items.forEach((it, i)=>{
-        const card = document.createElement('div');
-        card.className = 'news-card';
-        card.style.padding = '1rem 0';
-        card.style.borderBottom = i < items.length-1 ? '1px solid #e2e8f0' : 'none';
-        
-        const title = document.createElement('div');
-        title.innerHTML = highlightTerms(it.title || 'Untitled');
-        title.style.fontWeight = '600';
-        title.style.marginBottom = '0.4rem';
-        
-        const meta = document.createElement('div');
-        meta.style.fontSize = '0.9rem';
-        meta.style.color = '#64748b';
-        meta.style.marginBottom = '0.5rem';
-        let metaText = it.publisher ? `${it.publisher}` : 'Unknown source';
-        if(it.trusted){
-            metaText += ' ✓ Trusted';
-        }
-        meta.innerText = metaText;
-        
-        const actions = document.createElement('div');
-        actions.style.marginTop = '0.6rem';
-        actions.style.display = 'flex';
-        actions.style.gap = '0.5rem';
-        
-        const sumBtn = document.createElement('button');
-        sumBtn.className = 'btn';
-        sumBtn.style.padding = '0.4rem 0.8rem';
-        sumBtn.style.fontSize = '0.9rem';
-        sumBtn.innerText = 'Summarize';
-        sumBtn.onclick = async ()=>{
-            await summarizeArticle(it, card);
-        };
-        actions.appendChild(sumBtn);
-        
-        if(it.link){
-            const read = document.createElement('a');
-            read.href = it.link;
-            read.target = '_blank';
-            read.rel = 'noreferrer noopener';
-            read.style.padding = '0.4rem 0.8rem';
-            read.style.fontSize = '0.9rem';
-            read.style.textDecoration = 'none';
-            read.style.color = '#2563eb';
-            read.innerText = '→ Read full article';
-            actions.appendChild(read);
-        }
-        
-        const summaryEl = document.createElement('div');
-        summaryEl.className = 'news-summary';
-        summaryEl.style.marginTop = '0.6rem';
-        summaryEl.style.color = '#1f2937';
-        summaryEl.style.lineHeight = '1.6';
-        
-        card.appendChild(title);
-        card.appendChild(meta);
-        card.appendChild(actions);
-        card.appendChild(summaryEl);
-        listEl.appendChild(card);
-    });
 }
 
-const summaryCache = {};
-async function summarizeArticle(item, containerEl){
-    const summaryEl = containerEl.querySelector('.news-summary');
-    const key = (item.link || item.title || '') + '';
-    
-    if(summaryCache[key]){
-        summaryEl.innerHTML = highlightTerms(summaryCache[key]);
-        return;
-    }
-    
-    summaryEl.innerHTML = '<span class="spinner" style="display:inline-block; margin-right:0.5rem;"></span><span style="color:#64748b;">Summarizing… this usually takes a few seconds 🤔</span>';
-    
-    try{
-        // Prefer full article content when available
-        const textToSummarize = item.content && item.content.length > 40 ? 
-            item.content : 
-            `${item.title || ''}\n${item.link || ''}`;
-        
-        const body = { text: textToSummarize, length: 400 };
-        const res = await fetch('/api/summarize', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify(body)
-        });
-        
-        if(!res.ok){
-            const err = await res.json();
-            summaryEl.innerHTML = `<span style="color:#dc2626;">⚠️ ${err.error || 'Could not summarize. Please try again.'}</span>`;
+// ── AI News Summary ──────────────────────────────────────
+function renderSummaryHtml(text) {
+    let html = text
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g,'<em>$1</em>');
+
+    const seen = new Set();  // shared across all paragraphs — each term highlighted once only
+    return html.split(/\n\n+/).filter(p => p.trim()).map(p => {
+        p = p.trim();
+        if (/^[*\-]\s/m.test(p)) {
+            const items = p.split('\n').filter(l => l.trim()).map(l =>
+                `<li style="margin-bottom:0.35rem;">${highlightTerms(l.replace(/^[*\-]\s*/,''), seen)}</li>`
+            ).join('');
+            return `<ul style="padding-left:1.4rem;margin:0.5rem 0;">${items}</ul>`;
+        }
+        if (/key terms/i.test(p) && p.length < 60)
+            return `<h4 style="margin:1.25rem 0 0.6rem;color:#1a2e4a;font-size:1rem;">${p}</h4>`;
+        return `<p style="margin-bottom:0.85rem;line-height:1.75;">${highlightTerms(p, seen)}</p>`;
+    }).join('');
+}
+
+async function fetchAISummary() {
+    const contentEl = document.getElementById('ai-summary-content');
+    const sourceSec = document.getElementById('news-sources-section');
+    const sourceList= document.getElementById('news-sources-list');
+
+    try {
+        const res = await fetch(`/api/ai_summary/${ticker}`);
+        const js  = await res.json();
+
+        if (!res.ok || js.error) {
+            contentEl.innerHTML = '<div class="error-msg">Our AI teacher is taking a short break. Try refreshing in a moment!</div>';
             return;
         }
-        
-        const js = await res.json();
-        const out = js.summary || js?.result || 'Summary unavailable.';
-        summaryCache[key] = out;
-        summaryEl.innerHTML = highlightTerms(out);
-    } catch(e){
-        console.error('Summarize error', e);
-        summaryEl.innerHTML = '<span style="color:#dc2626;">Error summarizing. Please try again.</span>';
+
+        contentEl.innerHTML = renderSummaryHtml(js.summary);
+
+        if (js.articles && js.articles.length) {
+            sourceList.innerHTML = '';
+            js.articles.forEach((art, i) => {
+                if (!art.link) return;
+                const a = document.createElement('a');
+                a.href = art.link;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.style.cssText = 'display:block;color:#2563eb;text-decoration:none;';
+                a.innerHTML = `${i+1}. ${art.publisher ? '<strong>'+art.publisher+'</strong>: ' : ''}${art.title}`;
+                sourceList.appendChild(a);
+            });
+            if (sourceList.children.length) sourceSec.style.display = 'block';
+        }
+    } catch (e) {
+        console.error('AI summary error', e);
+        contentEl.innerHTML = '<div class="error-msg">Our AI teacher is taking a short break. Try refreshing in a moment!</div>';
     }
 }
 
-// fetch news on load
-fetchNews();
+// ── Wire up range buttons ────────────────────────────────
+document.querySelectorAll('.range-btn').forEach(b => b.addEventListener('click', () => fetchChart(b.dataset.range)));
+document.querySelectorAll('.range-btn').forEach(b => b.classList.toggle('active', b.dataset.range === '6m'));
+
+// ── Initialize ───────────────────────────────────────────
+fetchQuote();
+fetchStats();
+fetchChart('6m');   // also sets the initial change display for 6m range
+fetchAISummary();
+
+// ── Live price refresh every 15 seconds ──────────────────
+setInterval(() => {
+    fetchQuote();
+    const active = document.querySelector('.range-btn.active');
+    const range  = active ? active.dataset.range : '6m';
+    if (['1d','1w'].includes(range)) fetchChart(range);   // re-fetch chart + change for short ranges
+}, 15000);
 </script>
 {% endblock %}
