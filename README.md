@@ -27,7 +27,9 @@ StockWise is built for people who are completely new to investing. No Wall Stree
 
 ## Screenshots
 
-> *(Add your own screenshots here once the app is running)*
+><img width="773" height="586" alt="Screenshot 2026-04-30 at 12 55 35 AM" src="https://github.com/user-attachments/assets/a83aaf22-d398-4972-84c9-a2b0fcf55477" />
+<img width="734" height="820" alt="Screenshot 2026-04-30 at 12 55 03 AM" src="https://github.com/user-attachments/assets/7378e38d-d5ff-45ff-b36b-5dc332b41485" />
+
 
 ---
 
